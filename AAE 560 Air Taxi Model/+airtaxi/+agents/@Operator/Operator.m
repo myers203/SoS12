@@ -1,5 +1,5 @@
 classdef Operator < publicsim.agents.hierarchical.Parent
-    %% The airline operator
+    % The airline operator
     properties 
         team_id         
         team_name       
@@ -13,6 +13,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
     properties (Access = private)
         location
         num_ports
+        num_aircraft
         total_budget
         investment 
         
@@ -43,6 +44,12 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.serviced_ports = ports;
             obj.num_ports      = length(ports);
         end
+        
+        function setAircraft(obj,acft)
+            obj.aircraft_fleet = acft;
+            obj.num_aircraft   = length(acft);
+        end
+        
         function port_id = findNearbyPort(obj,ac_location)
             d = obj.distance2Ports(ac_location);
             [~,min_idx] = min(d);
@@ -57,6 +64,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         function loc = getLocation(obj)
             loc = obj.location;
         end
+        
         function mean_trip_dist = findMeanTripDistances(obj,port_id)
             dist2Ports = obj.dist_bw_ports(port_id,:);
             % Eliminate distance to itself
@@ -101,6 +109,23 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
+        function d = distance2Aircraft(obj,acft_id,ac_location)
+            d = zeros(1,obj.num_aircraft);
+            for ii=1:obj.num_aircraft
+                if obj.aircraft_fleet{ii}.ac_id == acft_id
+                    d(ii) = Inf;
+                else
+                    if ismember(obj.aircraft_fleet{ii}.getOperationMode, ...
+                            ['onTrip', 'enroute2pickup'])
+                        ac_loc = obj.aircraft_fleet{ii}.getLocation;
+                        d(ii) = obj.calc_dist3d(ac_location,ac_loc);
+                    else
+                        d(ii) = Inf;
+                    end
+                end
+            end
+        end
+            
         function dist = calcDistBetweenPorts(obj)
             dist = zeros(obj.num_ports);
             for ii=1:obj.num_ports
@@ -114,8 +139,14 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 end
             end
         end
+        
         function dist = calc_dist(~,loc1,loc2)
             dist = sqrt((loc1(1)-loc2(1))^2 + (loc1(2)-loc2(2))^2);
+        end
+        
+        function dist = calc_dist3d(~,loc1,loc2)
+            dist = sqrt((loc1(1)-loc2(1))^2 + (loc1(2)-loc2(2))^2 + ...
+                (loc1(3)-loc2(3))^2);
         end
         
         function setPickupArrival(obj,port_id,ac_id)

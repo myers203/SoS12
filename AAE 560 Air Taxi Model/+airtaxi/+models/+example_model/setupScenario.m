@@ -35,12 +35,12 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     for ii=1:n_ports
         loc = port_locations{ii};
         loc(3) = 0;
-        portAgents{ii}.setLocation(loc)
+        portAgents{ii}.setLocation(loc);
         portAgents{ii}.port_id = port_ids(ii);
     end
     
     for ii=1:n_aircraft
-        acAgents{ii}.ac_id = team_id*10+ii; % AC Id prefixed with team IDs
+        acAgents{ii}.ac_id = ii; 
         if ii > n_ports
             start_port = ii-n_ports;
         else
@@ -48,12 +48,14 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
         end
         loc = port_locations{start_port};
         loc(3) = 0;
-        acAgents{ii}.setLocation(loc)
+        acAgents{ii}.setLocation(loc);
         acAgents{ii}.current_port = start_port;
     end
     
     operator.setService(portAgents);
     operator.setTripPricing(price_table(:,1),cell2mat(price_table(:,2)));
+    
+    operator.setAircraft(acAgents);
     
     % Sim realtime plotting settings
     bounds = findPlottingBounds(port_locations);
@@ -66,6 +68,7 @@ function ac_type_params = parseACInfo(ac_info)
     all_ac_types(cellfun(@(C) any(isnan(C(:))),all_ac_types)) = [];
     ac_type_params = cell2mat(ac_info(2:1+length(all_ac_types),2:4));
 end
+
 function [port_params,port_locations] = parsePortInfo(port_info,port_ids,n_ports)
     all_port_ids = cell2mat(port_info(2:end,1));
     all_port_ids(isnan(all_port_ids)) = [];

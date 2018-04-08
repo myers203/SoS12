@@ -105,7 +105,8 @@ classdef Plotter < handle
             ac_marker.size = 9;
             ac_marker.edgeColor = 'k';
             for ii=1:nAC
-                ac_marker.faceColor = ac_color(acAgents{ii}.parent.team_id);
+%                 ac_marker.faceColor = ac_color(acAgents{ii}.parent.team_id);
+                ac_marker.faceColor = acAgents{ii}.getColor;
                 ac_marker.id_text   = ['AC',num2str(acAgents{ii}.ac_id)];
                 plotter = airtaxi.funcs.plots.Plotter(ac_marker);
                 acAgents{ii}.setPlotter(plotter);
