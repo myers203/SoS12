@@ -7,14 +7,12 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
 
     [~,~,port_info]    = xlsread(input_file,"Ports");
     [~,~,ac_info]      = xlsread(input_file,"Aircraft");
-    [~,~,charger_info] = xlsread(input_file,"Chargers");
-    [~,~,price_info]   = xlsread(input_file,"Pricing");
     
     % AC Types and numbers purchased
     [ac_types,ac_type_numbers] = parseFleet(user_input);
     
     % Ports serviced and chargers purchased
-    [port_ids,charger_types] = parseServicedPorts(user_input);
+    [port_ids] = parseServicedPorts(user_input);
     
     % Parse the AC info
     ac_type_params     = parseACInfo(ac_info);
@@ -22,11 +20,8 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     % Parse the port info
     [port_params,port_locations] = parsePortInfo(port_info,port_ids,n_ports);
     
-    % Parse pricing info
-    price_table = parsePriceInfo(price_info,ac_types);
-    
     % Assign port properties
-    portAgents = setPortProperties(portAgents,port_params,charger_types,charger_info,team_id);
+    portAgents = setPortProperties(portAgents,port_params);
         
     % Assign aircraft properties
     acAgents = setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_params);
@@ -53,8 +48,6 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     end
     
     operator.setService(portAgents);
-    operator.setTripPricing(price_table(:,1),cell2mat(price_table(:,2)));
-    
     operator.setAircraft(acAgents);
     
     % Sim realtime plotting settings
@@ -81,27 +74,12 @@ function [port_params,port_locations] = parsePortInfo(port_info,port_ids,n_ports
     end
 end
 
-function portAgents = setPortProperties(portAgents,port_params,charger_types,charger_info,team_id)
+function portAgents = setPortProperties(portAgents,port_params)
     for ii=1:length(portAgents)
-        portAgents{ii}.charging_cost = port_params(ii,1);
         portAgents{ii}.landing_slots = port_params(ii,2);
-        portAgents{ii}.landing_cost  = port_params(ii,3);
-        charger = struct();
-        if strcmpi(strtrim(charger_types{ii}),'Slow')
-            charger.charger_type  = 'Slow';
-            charger.charging_rate = charger_info{2,2};
-        elseif strcmpi(strtrim(charger_types{ii}),'Fast')
-            charger.charger_type  = 'Fast';
-            charger.charging_rate = charger_info{3,2};
-        elseif ~strcmpi(strtrim(charger_types{ii}),'None')
-            error('Incorrect Charging Equipment Specification')
-        end
-        portAgents{ii}.chargers(team_id) = charger;
     end
 end
-function price_table = parsePriceInfo(price_info,ac_types)
-    price_table = price_info(2:length(ac_types)+1,1:2);
-end
+
 function acAgents = setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_params)
     ac_count = 1;
     for ii=1:length(ac_types)
@@ -114,6 +92,7 @@ function acAgents = setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_pa
         end
     end
 end
+
 function [ac_types,ac_type_numbers] = parseFleet(user_input)
     ii = 3;
     ac_types = {};
@@ -128,10 +107,9 @@ function [ac_types,ac_type_numbers] = parseFleet(user_input)
     ac_type_numbers = cell2mat(user_input(10,3:ii-1));
 end
 
-function [port_ids,charger_types] = parseServicedPorts(user_input)
+function [port_ids] = parseServicedPorts(user_input)
     ii = 3;
     port_ids = [];
-    charger_types = {};
     while ~isempty(user_input{12,ii})
         if isnan(user_input{12,ii})
             break
@@ -139,8 +117,6 @@ function [port_ids,charger_types] = parseServicedPorts(user_input)
         % Check if the port is serviced
         if strcmpi(user_input{13,ii},'Yes')
             port_ids(end+1) = str2double(extractAfter(user_input{12,ii},"Port ")); %#ok<*AGROW>
-            % Check the charger type setup for the port
-            charger_types{end+1} = user_input{14,ii};
         end
         ii = ii+1;
     end

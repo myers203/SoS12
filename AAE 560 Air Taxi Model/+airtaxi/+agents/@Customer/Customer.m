@@ -1,12 +1,8 @@
 classdef Customer < handle
     properties 
-        ref
-        demand_state
-        trip_demand
-        
-        trip_decision
-        
-        pickup_ac
+        demand_state    % 1=No Acft Assigned, 0=Acft Assigned
+        source_id
+        dest_id
     end
     
     properties (Access = private)
@@ -32,36 +28,22 @@ classdef Customer < handle
         
     end
     methods
-        function obj = Customer(spawn_info,trip_demand)
-            obj.demand_state = 0;  % 0 --> Not served
-                                   % 1 --> Served
-            obj.ref = spawn_info.ref;
-            obj.trip_demand  = trip_demand;
-            obj.spawn_time   = spawn_info.time;
-            obj.trip_decision = -1; % No trip selected
+        function obj = Customer(time,src,dst)
+            obj.spawn_time   = time;
+            obj.source_id    = src;
+            obj.dest_id      = dst;
+            obj.demand_state = 1;
             obj.setPlotter();
-            obj.plotCustomer(spawn_info);
-            obj.generateCharacteristics();
         end
        
-        function generateCharacteristics(obj)
-            % max_price
-            % max_wait_time
-            % trip_demand
-            obj.max_price      = normrnd(obj.MAX_PRICE_MU,obj.MAX_PRICE_SIG);            
-            obj.max_wait_time  = normrnd(obj.MAX_TIME_MU,obj.MAX_TIME_SIG);            
-            obj.cancel_prob    = normrnd(obj.CANCEL_PROB_MU,obj.CANCEL_PROB_SIG);            
-        end
-        
         function setPlotter(obj)
             marker = obj.setMarker();
             obj.plotter      = airtaxi.funcs.plots.Plotter(marker);
         end
-        function plotCustomer(obj,spawn_info)
-            max_cust = spawn_info.max_customers;
-            center   = spawn_info.port_location;    
+        function plotCustomer(obj,loc,angle)
+            center   = loc;    
             R        = 2;
-            theta    = spawn_info.ref*2*pi/max_cust;
+            theta    = angle*2*pi;
             location = center + R*[cos(theta),sin(theta), 0];
             obj.plotter.updatePlot(location);
         end
@@ -72,14 +54,15 @@ classdef Customer < handle
                 bool = true;
             end
         end
-        function response = acceptTrip(obj, trip_price)
-            % If price is acceptable, acceptTrip
-            response = true;
+        
+        function assigned(obj)
+            obj.demand_state = 0;
         end
         
         function setDemandState(obj,val)
             obj.demand_state = val;
         end
+        
         function ac_id = findBestDeal(obj,trip_options)
             % Go for the option with lowest price & least wait time
             trip_prices = nan(size(trip_options));

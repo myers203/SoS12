@@ -12,9 +12,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
         operation_mode      
         current_port
         num_ports
-        operating_costs
-        revenue
-        current_trip_price
         
         % --- Dynamics properties ---
         location            % Current location
@@ -40,18 +37,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
         last_update_time
         plotter
         run_interval
-        
-        % --- Agent Communication ---
-        trip_accept_topic
-        price_broadcast_topic
-        customer_request_topic
     end
     
-    properties (Constant)
-        TRIP_TOPIC_KEY              = 'TRIP_INFO';
-        CUSTOMER_REQUEST_TOPIC_KEY  = 'CUSTOMER_REQUEST';
-        TRIP_ACCEPT_TOPIC_KEY       = 'TRIP_ACCEPT';
-    end
     methods
         function obj = Aircraft(num_ports)
             obj = obj@airtaxi.agents.Agent();
@@ -72,9 +59,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj.customers_served_count = 0;
             
             obj.num_ports          = num_ports;
-            obj.operating_costs    = 0;
-            obj.revenue            = 0;
-            obj.current_trip_price = nan;
             obj.routes_served_count  = zeros(num_ports);
             
             % --- Movement ---
@@ -92,10 +76,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
         
         function init(obj)
             obj.setMovementManager(obj);
-            obj.customer_request_topic = obj.getDataTopic(obj.CUSTOMER_REQUEST_TOPIC_KEY,'','');
-            obj.trip_accept_topic      = obj.getDataTopic(obj.TRIP_ACCEPT_TOPIC_KEY, '','');
-            
-            obj.subscribeToTopic(obj.customer_request_topic);
             obj.scheduleAtTime(0);
         end
         
@@ -107,11 +87,11 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
                 obj.updateParams(time_since_update);
                 
                 if strcmp(obj.operation_mode,'idle') 
-                    obj.findCustomers();
+
                 elseif strcmp(obj.operation_mode,'onTrip') || strcmp(obj.operation_mode,'enroute2pickup')
                 end
                 obj.last_update_time = time;
-                obj.scheduleAtTime(time+1);
+                obj.scheduleAtTime(time+obj.run_interval);
             end
         end
         
@@ -168,7 +148,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj.speed = 0;
             obj.destination = struct();
             obj.setOperationMode('crash-fatal');
-            obj.color = 'r';
             obj.plotter.traj = [];
         end
         
@@ -180,10 +159,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj.speed = 0;
             obj.setOperationMode('idle');
 			
-			% Update operation costs with the cost of landing at the port 
-            obj.operating_costs = obj.operating_costs + ...
-                obj.parent.getLandingCost(obj.current_port);
-            
             % Reset plot trajectory
             obj.plotter.traj = [];
         end
@@ -196,45 +171,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj.location = loc;
         end
         
-        function findCustomers(obj)
-			% Determine demand at the ports and calculate trip prices 
-            [topics,msgs] = obj.getNewMessages();
-            for i=1:length(topics)
-                if isequal(topics{i}.type,obj.CUSTOMER_REQUEST_TOPIC_KEY)
-                    response = msgs{i};
-                    obj.processCustomerResponse(response);
-                end
-            end
-            if ~isempty(obj.customer_responses)
-                best_customer = obj.findBestCustomer();
-                if ~isempty(best_customer)
-                    obj.acceptTripRequest(best_customer);
-                    return;
-                end
-            end
-            
-            % Calculate trip info and broadcast to all serviced ports
-            % Trip info: wait time
-            %            origin-destinaton price
-            trip_info = obj.calcTripInfo();
-            obj.broadcastTripPrices(trip_info);
-        end
-        
-        function acceptTripRequest(obj,best_customer)
-			% Update the destination based on best customer 
-            accept_msg = obj.customer_responses{best_customer};
-            if accept_msg.ac_id == -1
-                keyboard
-            end
-            trip_prices = obj.parent.calcPrice(obj);
-            obj.current_trip_price = trip_prices(accept_msg.port_id,accept_msg.dest);
-            obj.customer_responses(best_customer) = [];
-            obj.publishToTopic(obj.trip_accept_topic,accept_msg);
-            obj.destination.id = accept_msg.dest;
-            obj.destination.location = obj.parent.serviced_ports{obj.destination.id}.location();
-            obj.pickup.id      = accept_msg.port_id;
+        function assignTrip(obj,src_id,dest_id)
+            obj.destination.id = dest_id;
+            dest = obj.parent.getPortById(dest_id);
+            obj.destination.location = dest.location();
+            obj.pickup.id = src_id;
             obj.pickupCustomer();
-            obj.addDefaultLogEntry(obj.TRIP_ACCEPT_TOPIC_KEY,accept_msg);
         end
         
         function pickupCustomer(obj)
@@ -251,7 +193,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
         
         function updateArrival(obj,port_id)
             obj.parent.setPickupArrival(port_id,obj.ac_id);
-            obj.revenue = obj.revenue + obj.current_trip_price;
         end
         
         function reachedPickupPort(obj)
@@ -276,10 +217,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj.setOperationMode('onTrip');
             obj.setDirVect(obj.destination.location);
             obj.speed     = obj.cruise_speed;
-            trip_info.ac_id      = obj.ac_id;
-            trip_info.wait_times = [];
-            trip_info.prices     = [];
-            obj.broadcastTripPrices(trip_info);
         end
         
         function setDirVect(obj,dest_location)
@@ -317,90 +254,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj.scheduleAtTime(time+1); % TODO Is time+1 correct?
         end
         
-        function trip_info = calcTripInfo(obj)
-            % TODO: Calculate waittime
-            wait_times = obj.calcWaitTimes();
-            % TODO: Calculate price
-            prices     = obj.parent.calcPrice(obj);
-            
-            trip_info.ac_id      = obj.ac_id;
-            trip_info.wait_times = wait_times;
-            trip_info.prices     = prices;
-            %routes_served = obj.parent.service_routes;
-            
-        end
-        
-        function wait_times = calcWaitTimes(obj)
-            dist2ports = obj.parent.distance2Ports(obj.location);
-            wait_times = dist2ports/obj.cruise_speed;
-        end
-        
-        function broadcastTripPrices(obj,trip_info)
-            obj.price_broadcast_topic = obj.getDataTopic(obj.TRIP_TOPIC_KEY,'','');
-            obj.publishToTopic(obj.price_broadcast_topic,trip_info)
-            obj.addDefaultLogEntry(obj.TRIP_TOPIC_KEY,trip_info);
-        end
-        
-        function processCustomerResponse(obj,response_msgs)
-            % response format: response.ac_id
-            %                          .port_id
-            %                          .route
-            for ii=1:length(response_msgs)
-                response = response_msgs{ii};
-                % Check if message from same customer already exists
-                idx = obj.checkForResponse(response);
-                if response.ac_id == obj.ac_id
-                    if isempty(idx)
-                        obj.customer_responses{end+1} = response;
-                    else
-                        obj.customer_responses{idx}   = response;
-                    end
-                    break;
-                elseif response.ac_id == -1
-                    % Delete response
-                    if ~isempty(idx)
-                        obj.current_trip_price = nan;
-                        obj.customer_responses(idx)   = [];
-                    end
-                end
-            end
-            
-        end
-        
-        function idx = checkForResponse(obj,response)
-            idx = [];
-            for ii=1:length(obj.customer_responses)
-                stored_resp = obj.customer_responses{ii};
-                if response.port_id == stored_resp.port_id && ...
-                        response.cust_ref == stored_resp.cust_ref
-                    % Same cutomer -- so update the existing response slot
-                    idx = ii;
-                    break
-                end
-            end
-            
-        end
-        
         function team_id = getTeamID(obj)
             team_id = obj.getNestedProperty('team_id');
-        end
-        
-        function id = findBestCustomer(obj)
-            % Customer that is closest
-            if length(obj.customer_responses) == 1
-                id = 1;
-                return
-            end
-            dist2Ports    = obj.parent.distance2Ports(obj.location);
-            dist2pickup   = zeros(1,length(obj.customer_responses));
-            trip_dist     = zeros(1,length(obj.customer_responses));
-            for ii=1:length(obj.customer_responses)
-                resp = obj.customer_responses{ii};
-                dist2pickup(ii) = dist2Ports(resp.port_id);
-                trip_dist(ii)   = obj.parent.dist_bw_ports(resp.port_id,resp.dest);
-            end
-            [~,min_idx]  = min(dist2pickup);
-            id = min_idx;
         end
         
         function c = getColor(obj)
@@ -436,11 +291,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
 			% Define the attributes that needs to be logged
 			
 			% The attributes can either be an agent property or a function which returns a value 
-            obj.addPeriodicLogItems({'getOperationMode','operating_costs','revenue','getMarketServed'});
-			
-			% Optionally period of logging can also be defined
-			% period = 2.0; %[s] in simulation time 
-			% obj.addPeriodicLogItems({'getOperationMode','operating_costs','revenue'},period);
+            obj.addPeriodicLogItems({'getOperationMode','getMarketServed'});
         end
         
     end

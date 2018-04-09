@@ -31,7 +31,7 @@ function port_data = parsePortData(unparsed_port_data,portAgents,duration)
         end
         data_temp.customer_count   = [allCustomers(ref:ref+duration).total_count];
         data_temp.served_customers = [allCustomers(ref:ref+duration).served_count];
-        data_temp.trip_demand      = [allCustomers(ref:ref+duration).trip_demand];
+        data_temp.dest_id          = [allCustomers(ref:ref+duration).dest_id];
         
         data_temp.times = allTimes(ref:ref+duration);
         port_data{port_count} = data_temp;
@@ -49,8 +49,6 @@ function ac_data = parseAircraftData(unparsed_ac_data,acAgents,duration)
     allIds   = [modeData.id];
     allTimes = [modeData.time];
     
-    allCosts = [operatingCostData.value];
-    allRevenues = [revenueData.value];
     allMarketServed = [marketServedData.value];
     
     ac_data = cell(size(acAgents));
@@ -62,8 +60,6 @@ function ac_data = parseAircraftData(unparsed_ac_data,acAgents,duration)
             keyboard
         end
         data_temp.modes = allModes(ref:ref+duration);
-        data_temp.operating_costs = allCosts(ref:ref+duration);
-        data_temp.revenue = allRevenues(ref:ref+duration);
         data_temp.market_served = allMarketServed(ref:ref+duration);
         data_temp.times = allTimes(ref:ref+duration);
         ac_data{ac_count} = data_temp;

@@ -84,20 +84,6 @@ classdef Plotter < handle
                 plot(loc(1),loc(2),'Marker',port_marker.type,'MarkerSize',port_marker.size,...
                     'MarkerEdgeColor',port_marker.edgeColor,'MarkerFaceColor',port_marker.faceColor);
                 text(loc(1),loc(2),num2str(ii),'Color',[1 1 1]);
-                
-                % Plot charger assets
-                charger_keys = keys(portAgents{ii}.chargers);
-                for jj=1:length(charger_keys)
-                    c_loc = loc(1:2) - [0,1.5] + (jj-1)*[0.5 0];
-                    team = charger_keys{jj};
-                    plot(c_loc(1),c_loc(2),'Marker','^','MarkerSize',7,'MarkerEdgeColor','k','MarkerFaceColor',ac_color(team));
-                    charger = portAgents{ii}.chargers(jj);
-                    if strcmp(charger.charger_type,'Fast')
-                        text(c_loc(1)-0.3,c_loc(2),'F', 'Color', [1 1 1],'FontSize',7);
-                    elseif strcmp(charger.charger_type,'Slow')
-                        text(c_loc(1)-0.3,c_loc(2),'S', 'Color', [1 1 1],'FontSize',7);
-                    end
-                end
             end
             
             % Set color for AC plot
