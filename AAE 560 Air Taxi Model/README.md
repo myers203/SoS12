@@ -2,4 +2,4 @@
 DAF model framework for Air Taxi Model
 
 Run simulation by typing in the following in MATLAB command window:
-airtaxi.models.example_model.runModel
+`airtaxi.models.example_model.runModel_new` from the top level directory.
