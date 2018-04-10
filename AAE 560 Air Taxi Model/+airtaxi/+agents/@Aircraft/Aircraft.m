@@ -44,12 +44,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj = obj@airtaxi.agents.Agent();
             obj@publicsim.agents.base.Movable();
             % --- Operaional ---
-            obj.operation_mode               = 'idle';      % When the sim starts it is idle
-                                                            % Options: 'idle',
-                                                            %          'onTrip',
-                                                            %          'enroute2pickup',
-                                                            %          'crash-fatal',
-                                                            %          'crash-nonfatal'
+            obj.operation_mode = 'idle';  % When the sim starts it is idle
+                                          % Options: 'idle',
+                                          %          'onTrip',
+                                          %          'enroute2pickup',
+                                          %          'crash-fatal',
+                                          %          'crash-nonfatal'
             
             obj.color = 'b';
             
@@ -64,11 +64,11 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             % --- Movement ---
             obj.climb_rate         = 0;
             obj.speed              = 0;              % [m/s]
-            obj.cruise_speed       = 200/...         % [mph]
+            obj.cruise_speed       = 60/...          % [mph]
                 obj.convert.unit('hr2min'); %[mi/min]
             
             % --- Simulation ---
-            obj.run_interval = 1;
+            obj.run_interval       = 1;
             obj.plotter            = [];
             obj.last_update_time   = -1;
             obj.setLogLevel(publicsim.sim.Logger.log_INFO);
@@ -82,14 +82,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
         function runAtTime(obj,time)
             if (time - obj.last_update_time >= obj.run_interval)
                 time_since_update = time - obj.last_update_time;
-                %                 obj.ac_id
-                %                 keyboard
-                obj.updateParams(time_since_update);
-                
-                if strcmp(obj.operation_mode,'idle') 
 
+                obj.updateParams(time_since_update);
+                if strcmp(obj.operation_mode,'idle') 
                 elseif strcmp(obj.operation_mode,'onTrip') || strcmp(obj.operation_mode,'enroute2pickup')
                 end
+                
                 obj.last_update_time = time;
                 obj.scheduleAtTime(time+obj.run_interval);
             end
@@ -187,7 +185,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
                 obj.setOperationMode('enroute2pickup');
                 obj.pickup.location = obj.parent.serviced_ports{obj.pickup.id}.getLocation();
                 obj.setDirVect(obj.pickup.location);
-                obj.speed  = obj.cruise_speed;
+                obj.speed = obj.cruise_speed;
             end
         end
         
@@ -200,17 +198,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
             obj.updateArrival(obj.pickup.id);
             obj.setDirVect(obj.destination.location);
             obj.setOperationMode('onTrip');
-            [~,pickup_port_ref] = obj.parent.getPortById(obj.pickup.id);
-            [~,dest_port_ref]   = obj.parent.getPortById(obj.destination.id);
-            count = obj.routes_served_count(pickup_port_ref,dest_port_ref);
-            obj.routes_served_count(pickup_port_ref,dest_port_ref) = count+1;
-            obj.customers_served_count = obj.customers_served_count +1;
-            obj.pickup = struct();
-        end
-        
-        function marketServed = getMarketServed(obj)
-            marketServed.routes_served = obj.routes_served_count;
-            marketServed.customers_served = obj.customers_served_count;
+            obj.speed = obj.cruise_speed;
         end
         
         function startTrip(obj)
@@ -291,7 +279,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
 			% Define the attributes that needs to be logged
 			
 			% The attributes can either be an agent property or a function which returns a value 
-            obj.addPeriodicLogItems({'getOperationMode','getMarketServed'});
+            obj.addPeriodicLogItems({'getOperationMode'});
         end
         
     end

@@ -2,7 +2,7 @@ function runModel_new(~)
     import publicsim.*;
     
     simTimes.startTime = 0;
-    simTimes.endTime   = 1000; % 1000 min
+    simTimes.endTime   = 500; % equivalent min
                                % 1 Sim s = 1 actual min
     logPath            = './tmp/example_model';
     simInst            = publicsim.sim.Instance(logPath);

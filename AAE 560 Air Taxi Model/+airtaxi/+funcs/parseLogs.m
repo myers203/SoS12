@@ -4,7 +4,7 @@ function parsedData = parseLogs(logPath,acAgents,portAgents,duration)
     parsedData = struct();
     
     % Aircraft Data Parsing
-    aircraftData = publicsim.sim.Loggable.readParamsByClass(logger,'airtaxi.agents.Aircraft',{'getOperationMode','operating_costs','revenue','getMarketServed'});
+    aircraftData = publicsim.sim.Loggable.readParamsByClass(logger,'airtaxi.agents.Aircraft',{'getOperationMode'});
     portData     = publicsim.sim.Loggable.readParamsByClass(logger,'airtaxi.agents.Port',{'getCustomerData'});
 
     ac_data    = parseAircraftData(aircraftData,acAgents,duration);
@@ -41,15 +41,10 @@ end
 
 function ac_data = parseAircraftData(unparsed_ac_data,acAgents,duration)
     modeData = [unparsed_ac_data.getOperationMode];
-    operatingCostData = [unparsed_ac_data.operating_costs];
-    revenueData = [unparsed_ac_data.revenue];
-    marketServedData = [unparsed_ac_data.getMarketServed];
     
     allModes = {modeData.value};
     allIds   = [modeData.id];
     allTimes = [modeData.time];
-    
-    allMarketServed = [marketServedData.value];
     
     ac_data = cell(size(acAgents));
     ac_count = 1;
@@ -60,13 +55,8 @@ function ac_data = parseAircraftData(unparsed_ac_data,acAgents,duration)
             keyboard
         end
         data_temp.modes = allModes(ref:ref+duration);
-        data_temp.market_served = allMarketServed(ref:ref+duration);
         data_temp.times = allTimes(ref:ref+duration);
         ac_data{ac_count} = data_temp;
         ac_count = ac_count+1;
     end
-    
-    
-    
-    
 end
