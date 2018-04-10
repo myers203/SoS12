@@ -63,7 +63,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     obj.assignRemoteAircraft(port);
                     port.updateCustomerStates();
                     obj.spawnDemand(port,time);
-                    obj.plotCustomers(port);
                 end
 
                 obj.last_update_time = time;
@@ -91,21 +90,16 @@ classdef Operator < publicsim.agents.hierarchical.Parent
 
         function assignRemoteAircraft(obj,port)
             for i=1:length(port.current_customers)
-                try
-                    cust = port.current_customers{i};
-                    demand_state = port.current_customers{i}.demand_state;
-                catch ME
-                    disp([ME.identifier ':' ME.message]);
-                    disp(['i=' num2str(i)]);
-                    port.current_customers
-                end
-                
+                cust = port.current_customers{i};
+                demand_state = port.current_customers{i}.demand_state;
                 if demand_state == 1
+                    % sort ports in order of distance
                     [~,idx] = sort(obj.dist_bw_ports(port.port_id,:));
-
-                    for i=2:length(idx)
-                        port = obj.serviced_ports{idx(i)};
-                        acft = obj.getAvailableAircraftAtPort(port);
+                    
+                    % first port is self, so start with 2nd in list
+                    for j=2:length(idx)  
+                        otherPort = obj.serviced_ports{idx(j)};
+                        acft = obj.getAvailableAircraftAtPort(otherPort);
                         if isempty(acft)
                             continue;
                         else
@@ -133,18 +127,18 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     end
                 end
                 
+                % Populate Spawn Info
+                spawn_info.time          = time;
+                spawn_info.slot_num      = port.fillFirstCustSlot();
+                spawn_info.port_location = port.location;
+                spawn_info.max_customers = port.max_customers;
+
                 % Create customer object
-                customer = airtaxi.agents.Customer(time,port.port_id,dest);
+                customer = airtaxi.agents.Customer(spawn_info,port.port_id,dest);
                 port.current_customers{end+1} = customer;
             end
         end
         
-        function plotCustomers(~,port)
-            for i=1:length(port.current_customers)
-                cust = port.current_customers{i};
-                cust.plotCustomer(port.location,i/port.max_customers);
-            end
-        end
         function aircraft = getAvailableAircraftAtPort(obj,port)
             aircraft = {};
             for i=1:obj.num_aircraft

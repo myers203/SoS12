@@ -3,12 +3,11 @@ classdef Customer < handle
         demand_state    % 1=No Acft Assigned, 0=Acft Assigned
         source_id
         dest_id
+        spawn_info
     end
     
     properties (Access = private)
         spawn_time      % The time when customer appears at the port
-        max_price       % Max. price acceptable for the customer
-        max_wait_time   % Max. wait time acceptable for the customer
         cancel_prob     % Probability of cancellation
         
         plotter
@@ -28,22 +27,24 @@ classdef Customer < handle
         
     end
     methods
-        function obj = Customer(time,src,dst)
-            obj.spawn_time   = time;
+        function obj = Customer(spawn_info,src,dst)
+            obj.spawn_info   = spawn_info;
             obj.source_id    = src;
             obj.dest_id      = dst;
             obj.demand_state = 1;
             obj.setPlotter();
+            obj.plotCustomer();
         end
        
         function setPlotter(obj)
             marker = obj.setMarker();
             obj.plotter      = airtaxi.funcs.plots.Plotter(marker);
         end
-        function plotCustomer(obj,loc,angle)
-            center   = loc;    
+        function plotCustomer(obj)
+            max_cust = obj.spawn_info.max_customers;
+            center   = obj.spawn_info.port_location;    
+            theta    = obj.spawn_info.slot_num*2*pi/max_cust;
             R        = 2;
-            theta    = angle*2*pi;
             location = center + R*[cos(theta),sin(theta), 0];
             obj.plotter.updatePlot(location);
         end

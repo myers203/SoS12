@@ -13,6 +13,7 @@ classdef Port < airtaxi.agents.Agent & publicsim.agents.base.Locatable & publics
 
         max_customers = 10      
         current_customers
+        free_cust_slots
     end
     
     properties (Access = private)
@@ -31,8 +32,10 @@ classdef Port < airtaxi.agents.Agent & publicsim.agents.base.Locatable & publics
             obj.run_interval = 1;
             obj.last_update_time = -1;
             obj.pickups_arrived = [];
+            obj.free_cust_slots = ones(1,obj.max_customers);
         end
-        function init(obj) 
+        
+        function init(obj)
             obj.setLogLevel(publicsim.sim.Logger.log_INFO);
             
             obj.scheduleAtTime(0);
@@ -50,13 +53,15 @@ classdef Port < airtaxi.agents.Agent & publicsim.agents.base.Locatable & publics
 			% Update customer state
             del_flag = zeros(1,length(obj.current_customers));
             for ii=1:length(obj.current_customers)
-                if obj.current_customers{ii}.demand_state == 0
+                cust = obj.current_customers{ii};
+                if cust.demand_state == 0
                     if isempty(obj.pickups_arrived)
                         break
                     else
                         % assign first pickup available
                         obj.pickups_arrived = obj.pickups_arrived(2:end);
-                        obj.current_customers{ii}.deletePlot();
+                        obj.free_cust_slots(cust.spawn_info.slot_num) = 1;
+                        cust.deletePlot();
                         
                         % flag customer for deletion
                         del_flag(ii) = 1;
@@ -66,6 +71,16 @@ classdef Port < airtaxi.agents.Agent & publicsim.agents.base.Locatable & publics
             % delete picked up customers
             if ~isempty(del_flag)
                 obj.current_customers = obj.current_customers(~del_flag);
+            end
+        end
+        
+        function slotNum = fillFirstCustSlot(obj)
+            for i=1:obj.max_customers
+                if obj.free_cust_slots(i) 
+                    obj.free_cust_slots(i) = 0;
+                    slotNum = i;
+                    break;
+                end
             end
         end
         

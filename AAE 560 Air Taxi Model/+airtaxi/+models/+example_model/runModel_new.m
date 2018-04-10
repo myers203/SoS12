@@ -2,7 +2,7 @@ function runModel_new(~)
     import publicsim.*;
     
     simTimes.startTime = 0;
-    simTimes.endTime   = 200; % 1000 min
+    simTimes.endTime   = 1000; % 1000 min
                                % 1 Sim s = 1 actual min
     logPath            = './tmp/example_model';
     simInst            = publicsim.sim.Instance(logPath);
@@ -42,9 +42,9 @@ function runModel_new(~)
     simInst.runUntil(simTimes.startTime,simTimes.endTime);
     
     % Parse data logs
-%     duration = simTimes.endTime - simTimes.startTime;
-%     parsed_data = airtaxi.funcs.parseLogs(logPath,acAgents,portAgents,duration);
+    duration = simTimes.endTime - simTimes.startTime;
+    parsed_data = airtaxi.funcs.parseLogs(logPath,acAgents,portAgents,duration);
     
     % Postprocessing
-%     airtaxi.models.example_model.processData(parsed_data,acAgents,portAgents)
+    airtaxi.models.example_model.processData(parsed_data,acAgents,portAgents)
 end
