@@ -14,11 +14,13 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         location
         num_ports
         num_aircraft
-        total_budget
-        investment 
+        takeoff_clearance   
         
-        price_per_mile
-
+        vectors_bw_acft
+        
+        datalink_buffer
+        datalink_buf_len
+        
         % --- Sim properties ---
         last_update_time
         run_interval
@@ -29,19 +31,21 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj = obj@publicsim.agents.hierarchical.Parent();
             obj.team_id      = op_info{1};
             obj.team_name    = op_info{2};
-            obj.total_budget = op_info{3};
-            obj.investment   = op_info{4};
             
-            
+            obj.takeoff_clearance = 1;      % in nmi
+
             obj.useSingleNetwork = false;
-            obj.price_per_mile   = 0.5;    % $ per mile
             obj.location = [0,0,0];
             
             obj.dist_bw_ports = []; 
+            obj.vectors_bw_acft = {};
+            
+            obj.datalink_buffer = [];
+            obj.datalink_buf_len = 5;
 
             % --- Simulation ---
-            obj.run_interval = 1;
-            obj.last_update_time   = -1;
+            obj.run_interval     = 1;
+            obj.last_update_time = -1;
         end
         
         function init(obj) 
@@ -64,6 +68,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     port.updateCustomerStates();
                     obj.spawnDemand(port,time);
                 end
+
+                obj.calcVectsBetweenAcft();
+                obj.bufferDatalinkData();
 
                 obj.last_update_time = time;
                 obj.scheduleAtTime(time+obj.run_interval);
@@ -151,6 +158,27 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
+        function check = getClearance(obj,acft)
+            vects = obj.vectors2Aircraft(acft);
+            check = true;
+            for i=1:size(vects,1)
+                if norm(vects(i,:)) < obj.takeoff_clearance
+                    check = false;
+                    return;
+                end
+            end
+        end
+        
+        function bufferDatalinkData(obj)
+            obj.datalink_buffer = obj.datalink_buffer(2:end);
+            obj.datalink_buffer{end+1} = obj.vectors_bw_acft;
+        end
+        
+        function data = getDatalinkData(obj,acft)
+            data = obj.datalink_buffer{1};
+            data = data{acft.ac_id,:};
+        end
+
         function setPickupArrival(obj,port_id,ac_id)
             port = obj.getPortById(port_id);
             port.pickupArrived(ac_id);
@@ -181,13 +209,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             loc = obj.location;
         end
         
-        function mean_trip_dist = findMeanTripDistances(obj,port_id)
-            dist2Ports = obj.dist_bw_ports(port_id,:);
-            % Eliminate distance to itself
-            dist2Ports(dist2Ports == 0) = [];
-            mean_trip_dist = sum(dist2Ports)/(obj.num_ports-1);
-        end
-        
         function [port,ii] = getPortById(obj,port_id)
             for ii=1:length(obj.serviced_ports)
                 if obj.serviced_ports{ii}.port_id == port_id
@@ -210,48 +231,53 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             d = zeros(1,obj.num_ports);
             for ii=1:obj.num_ports
                 port_loc = obj.serviced_ports{ii}.getLocation;
-                d(ii)    = obj.calc_dist(obj_location,port_loc);
+                d(ii)    = airtaxi.funcs.calc_dist(obj_location,port_loc);
             end
         end
         
- function d = distance2Aircraft(obj,acft_id,ac_location)
-            temp=0;
-            d = zeros(1,obj.num_aircraft);
+        function checkForCollision(obj,acft)
             for ii=1:obj.num_aircraft
-                %finding the location of the current aircraft in operator's
-                %queue
-                if obj.aircraft_fleet{ii}.ac_id == acft_id
-                    temp = ii;    
-                end
-            end
-            
-            for ii=1:obj.num_aircraft
-                if obj.aircraft_fleet{ii}.ac_id == acft_id
-                    d(ii) = Inf;       
-                else
-                    if ismember(obj.aircraft_fleet{ii}.getOperationMode, ...
-                            ['onTrip', 'enroute2pickup'])
-                        ac_loc = obj.aircraft_fleet{ii}.getLocation;
-                        d(ii) = obj.calc_dist3d(ac_location,ac_loc);
-                        v_2 = obj.aircraft_fleet{ii}.getRealVelocity;
-                        v_1 = obj.aircraft_fleet{temp}.getRealVelocity;
-                        %relative speed calculation
-                        s_rel = norm(v_1-v_2)*1.60934*60; %km/h for pdf  
-                        %will need to model pdf for inside of EASA's
-                        %clearance parameter
-                        if d(ii) < 10/6076.12 % ft/nmi
-                            %both aircraft involved collide
-                            obj.aircraft_fleet{temp}.midAirCollision(s_rel);
-                            obj.aircraft_fleet{ii}.midAirCollision(s_rel);
-                        end
-                    else
-                        d(ii) = Inf;
+                if (obj.aircraft_fleet{ii}.ac_id ~= acft.ac_id) && ...
+                        (ismember(obj.aircraft_fleet{ii}.getOperationMode, ...
+                        {'onTrip', 'enroute2pickup'}))
+                    d = airtaxi.funcs.calc_dist3d(acft.location, ...
+                        obj.aircraft_fleet{ii}.getLocation());
+                    v_2 = obj.aircraft_fleet{ii}.getRealVelocity;
+                    v_1 = acft.getRealVelocity;
+                    %relative speed calculation
+                    s_rel = norm(v_1-v_2)*1.60934*60; %km/h for pdf  
+                    %will need to model pdf for inside of EASA's
+                    %clearance parameter
+                    if d < 1000/6076.12 % ft/nmi
+                        %both aircraft involved collide
+                        acft.midAirCollision(s_rel);
+                        obj.aircraft_fleet{ii}.midAirCollision(s_rel);
                     end
                 end
             end
         end
         
-            
+        function calcVectsBetweenAcft(obj)
+            % calculate vectors between all aircraft for datalink buffering
+            % and lookup.  Each column/row is vector from that aircraft to
+            % all others
+            for i=1:obj.num_aircraft
+                for j=1:obj.num_aircraft
+                    obj.vectors_bw_acft{i,j} = [Inf Inf Inf];
+                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'}))
+                    
+                        obj.vectors_bw_acft{i,j} = ...
+                            obj.aircraft_fleet{i}.getLocation - ...
+                            obj.aircraft_fleet{j}.getLocation;
+                    end
+                end
+            end
+        end
+        function v = vectors2Aircraft(obj,acft)
+            v = obj.vectors_bw_acft{acft.ac_id,:};
+        end
+        
         function dist = calcDistBetweenPorts(obj)
             dist = zeros(obj.num_ports);
             for ii=1:obj.num_ports
@@ -261,18 +287,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                         continue
                     end
                     port2_loc = obj.serviced_ports{jj}.getLocation;
-                    dist(ii,jj) = obj.calc_dist(port1_loc,port2_loc);
+                    dist(ii,jj) = airtaxi.funcs.calc_dist(port1_loc,port2_loc);
                 end
             end
-        end
-        
-        function dist = calc_dist(~,loc1,loc2)
-            dist = sqrt((loc1(1)-loc2(1))^2 + (loc1(2)-loc2(2))^2);
-        end
-        
-        function dist = calc_dist3d(~,loc1,loc2)
-            dist = sqrt((loc1(1)-loc2(1))^2 + (loc1(2)-loc2(2))^2 + ...
-                (loc1(3)-loc2(3))^2);
         end
         
     end

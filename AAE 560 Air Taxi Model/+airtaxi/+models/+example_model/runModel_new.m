@@ -2,13 +2,14 @@ function runModel_new(~)
     import publicsim.*;
     
     simTimes.startTime = 0;
-    simTimes.endTime   = 500; % equivalent min
+    simTimes.endTime   = 200; % equivalent min
                                % 1 Sim s = 1 actual min
     logPath            = './tmp/example_model';
     simInst            = publicsim.sim.Instance(logPath);
 
     % User input parsing
-    input_file = "+airtaxi/sample_inputs_large.xlsx";
+%     input_file = "+airtaxi/sample_inputs_large.xlsx";
+    input_file = "+airtaxi/sample_inputs.xlsx";
     [~,~,user_input] = xlsread(input_file);
     
     n_aircraft    = user_input{10,2};
