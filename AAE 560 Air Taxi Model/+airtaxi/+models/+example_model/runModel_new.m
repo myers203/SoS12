@@ -8,7 +8,8 @@ function runModel_new(~)
     simInst            = publicsim.sim.Instance(logPath);
 
     % User input parsing
-    input_file = "+airtaxi/sample_inputs_large.xlsx";
+%     input_file = "+airtaxi/sample_inputs_large.xlsx";
+    input_file = "+airtaxi/sample_inputs.xlsx";
     [~,~,user_input] = xlsread(input_file);
     
     n_aircraft    = user_input{10,2};
