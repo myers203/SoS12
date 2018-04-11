@@ -189,7 +189,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function acftRelPos = gatherDatalinkSA(obj)
             % TODO: add datalink SA
-            acftRelPos = obj.parent.vectors2Aircraft(obj);
+            acftRelPos = obj.parent.getDatalinkData(obj);
         end
         
         function acftRelPos = gatherVisualSA(obj)

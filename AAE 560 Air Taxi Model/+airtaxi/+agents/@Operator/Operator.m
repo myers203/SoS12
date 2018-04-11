@@ -14,9 +14,12 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         location
         num_ports
         num_aircraft
-        takeoff_clearance      
+        takeoff_clearance   
         
+        vectors_bw_acft
         
+        datalink_buffer
+        datalink_buf_len
         
         % --- Sim properties ---
         last_update_time
@@ -35,6 +38,10 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.location = [0,0,0];
             
             obj.dist_bw_ports = []; 
+            obj.vectors_bw_acft = {};
+            
+            obj.datalink_buffer = [];
+            obj.datalink_buf_len = 5;
 
             % --- Simulation ---
             obj.run_interval     = 1;
@@ -62,8 +69,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     obj.spawnDemand(port,time);
                 end
 
-                obj.calcDistBetweenAcft();
-                
+                obj.calcVectsBetweenAcft();
+                obj.bufferDatalinkData();
+
                 obj.last_update_time = time;
                 obj.scheduleAtTime(time+obj.run_interval);
             end
@@ -160,6 +168,16 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 end
             end
         end
+        
+        function bufferDatalinkData(obj)
+            obj.datalink_buffer = obj.datalink_buffer(2:end);
+            obj.datalink_buffer{end+1} = obj.vectors_bw_acft;
+        end
+        
+        function data = getDatalinkData(obj,acft)
+            data = obj.datalink_buffer{1};
+            data = data{acft.ac_id,:};
+        end
 
         function setPickupArrival(obj,port_id,ac_id)
             port = obj.getPortById(port_id);
@@ -239,22 +257,25 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-        function calcDistBetweenAcft(obj)
-            % calculate vectors between all aircraft for lookup
-            
-        end
-        function v = vectors2Aircraft(obj,acft)
-            v = zeros(obj.num_aircraft,3);
-            for ii=1:obj.num_aircraft
-                v(ii,:) = [Inf Inf Inf];
-                if (obj.aircraft_fleet{ii}.ac_id ~= acft.ac_id) && ...
-                        (ismember(obj.aircraft_fleet{ii}.getOperationMode, ...
-                        {'onTrip', 'enroute2pickup'}))
+        function calcVectsBetweenAcft(obj)
+            % calculate vectors between all aircraft for datalink buffering
+            % and lookup.  Each column/row is vector from that aircraft to
+            % all others
+            for i=1:obj.num_aircraft
+                for j=1:obj.num_aircraft
+                    obj.vectors_bw_acft{i,j} = [Inf Inf Inf];
+                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'}))
                     
-                    ac_loc = obj.aircraft_fleet{ii}.getLocation;
-                    v(ii,:) = ac_loc - acft.location;
+                        obj.vectors_bw_acft{i,j} = ...
+                            obj.aircraft_fleet{i}.getLocation - ...
+                            obj.aircraft_fleet{j}.getLocation;
+                    end
                 end
             end
+        end
+        function v = vectors2Aircraft(obj,acft)
+            v = obj.vectors_bw_acft{acft.ac_id,:};
         end
         
         function dist = calcDistBetweenPorts(obj)
