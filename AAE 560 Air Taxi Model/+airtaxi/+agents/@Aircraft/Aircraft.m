@@ -1,4 +1,5 @@
-classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publicsim.agents.hierarchical.Child
+classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
+        & publicsim.agents.hierarchical.Child & publicsim.agents.physical.Destroyable
     % Aircraft agent
     properties
         % --- AC properties ---
@@ -128,25 +129,26 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
                 obj.setLocation([obj.location(1:2) + dist_flown*obj.dir_vect ...
                     obj.location(3) + alt_climb]);
 
-                % Check for collision with other aircraft
-                dist2acft = obj.parent.distance2Aircraft(obj.ac_id,obj.location);
-                for ii=1:length(dist2acft)
-%                     dist2acft(ii)
-                    if dist2acft(ii) < 2
-                        obj.midAirCollision();
-                    end
-                end
-            end
+%                 Check for collision with other aircraft. Since air
+%                 collisions come in pairs, this must be handled at the
+%                 fleet (operator) level and is called here.
+                  dist2acft = ...
+                  obj.parent.distance2Aircraft(obj.ac_id,obj.location);
 			
 			% Update the realtime plot 
             obj.plotter.updatePlot(obj.location);
+            end
         end
         
-        function midAirCollision(obj)
-            obj.speed = 0;
-            obj.destination = struct();
-            obj.setOperationMode('crash-fatal');
+        function midAirCollision(obj,s_rel)
+            p = 1./(1+exp(5.5-.075*s_rel));
             obj.plotter.traj = [];
+            obj.destroy()
+            if p>.3
+                obj.setOperationMode('crash-fatal');
+            else
+                obj.setOperationMode('crash-nonfatal')
+            end
         end
         
         function reachedDestination(obj)
@@ -266,6 +268,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable & publi
         end
         function v = getVelocity(obj)
             v = obj.speed;
+        end
+        %necessary for finding relative speed of impact
+        function v = getRealVelocity(obj)
+           v =  obj.speed.*obj.dir_vect;
         end
         
         function current_mode = getOperationMode(obj)

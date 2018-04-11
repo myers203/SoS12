@@ -19,7 +19,7 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     
     % Parse the port info
     [port_params,port_locations] = parsePortInfo(port_info,port_ids,n_ports);
-    
+    n_start_zones = port_params(:,2);
     % Assign port properties
     portAgents = setPortProperties(portAgents,port_params);
         
@@ -36,15 +36,31 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     
     for ii=1:n_aircraft
         acAgents{ii}.ac_id = ii; 
-        if ii > n_ports
-            start_port = ii-n_ports;
-        else
-            start_port = ii;
+    end
+    
+    n_aircraft_loop = n_aircraft;
+    count = 1;
+    %this loop structure will take ANY combination of number of ports,
+    %number of landing zones, and number of aircraft as long as the number
+    %of aircraft is less than the number of total landing zones
+    while sum(n_start_zones>0) && n_aircraft_loop>0
+        for ii=1:n_ports
+            if n_start_zones(ii)>0
+                start_port = ii;
+                n_start_zones(ii) = n_start_zones(ii)-1;
+                n_aircraft_loop=n_aircraft_loop-1;
+            else
+                continue;
+            end
+            loc = port_locations{start_port};
+            loc(3) = 0;
+            acAgents{count}.setLocation(loc);
+            acAgents{count}.current_port = start_port;
+            count=count+1;
+            if count > n_aircraft
+                break
+            end
         end
-        loc = port_locations{start_port};
-        loc(3) = 0;
-        acAgents{ii}.setLocation(loc);
-        acAgents{ii}.current_port = start_port;
     end
     
     operator.setService(portAgents);

@@ -214,22 +214,43 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-        function d = distance2Aircraft(obj,acft_id,ac_location)
+ function d = distance2Aircraft(obj,acft_id,ac_location)
+            temp=0;
             d = zeros(1,obj.num_aircraft);
             for ii=1:obj.num_aircraft
+                %finding the location of the current aircraft in operator's
+                %queue
                 if obj.aircraft_fleet{ii}.ac_id == acft_id
-                    d(ii) = Inf;
+                    temp = ii;    
+                end
+            end
+            
+            for ii=1:obj.num_aircraft
+                if obj.aircraft_fleet{ii}.ac_id == acft_id
+                    d(ii) = Inf;       
                 else
                     if ismember(obj.aircraft_fleet{ii}.getOperationMode, ...
                             ['onTrip', 'enroute2pickup'])
                         ac_loc = obj.aircraft_fleet{ii}.getLocation;
                         d(ii) = obj.calc_dist3d(ac_location,ac_loc);
+                        v_2 = obj.aircraft_fleet{ii}.getRealVelocity;
+                        v_1 = obj.aircraft_fleet{temp}.getRealVelocity;
+                        %relative speed calculation
+                        s_rel = norm(v_1-v_2)*1.60934*60; %km/h for pdf  
+                        %will need to model pdf for inside of EASA's
+                        %clearance parameter
+                        if d(ii) < 10/6076.12 % ft/nmi
+                            %both aircraft involved collide
+                            obj.aircraft_fleet{temp}.midAirCollision(s_rel);
+                            obj.aircraft_fleet{ii}.midAirCollision(s_rel);
+                        end
                     else
                         d(ii) = Inf;
                     end
                 end
             end
         end
+        
             
         function dist = calcDistBetweenPorts(obj)
             dist = zeros(obj.num_ports);
