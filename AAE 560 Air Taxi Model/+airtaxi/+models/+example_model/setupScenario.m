@@ -1,12 +1,12 @@
-function setupScenario(input_file,user_input,acAgents,portAgents,operator)
+function setupScenario(input_file,user_input,acAgents,portAgents,operator,weather)
     % Currently assumes a single operator
     n_ports     = length(portAgents);
     n_aircraft  = length(acAgents);
     team_id     = operator.team_id;
     
 
-    [~,~,port_info]    = xlsread(input_file,"Ports");
-    [~,~,ac_info]      = xlsread(input_file,"Aircraft");
+    [~,~,port_info]    = xlsread(input_file,'Ports');
+    [~,~,ac_info]      = xlsread(input_file,'Aircraft');
     
     % AC Types and numbers purchased
     [ac_types,ac_type_numbers] = parseFleet(user_input);
@@ -26,13 +26,24 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     % Assign aircraft properties
     acAgents = setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_params);
 
+    PortRange.Xmin = port_locations{1}(1);
+    PortRange.Ymin = port_locations{1}(1);
+    PortRange.Xmax = PortRange.Xmin;
+    PortRange.Ymax = PortRange.Ymin;
     
     for ii=1:n_ports
         loc = port_locations{ii};
         loc(3) = 0;
         portAgents{ii}.setLocation(loc);
         portAgents{ii}.port_id = port_ids(ii);
+        
+        PortRange.Xmin = min(PortRange.Xmin,loc(2));
+        PortRange.Xmax = max(PortRange.Xmax,loc(2));
+        PortRange.Ymin = min(PortRange.Ymin,loc(2));
+        PortRange.Ymax = max(PortRange.Ymax,loc(2));
     end
+    
+    weather.setZone(PortRange);
     
     for ii=1:n_aircraft
         acAgents{ii}.ac_id = ii; 
@@ -132,7 +143,7 @@ function [port_ids] = parseServicedPorts(user_input)
         end
         % Check if the port is serviced
         if strcmpi(user_input{13,ii},'Yes')
-            port_ids(end+1) = str2double(extractAfter(user_input{12,ii},"Port ")); %#ok<*AGROW>
+            port_ids(end+1) = str2double(extractAfter(user_input{12,ii},'Port ')); %#ok<*AGROW>
         end
         ii = ii+1;
     end

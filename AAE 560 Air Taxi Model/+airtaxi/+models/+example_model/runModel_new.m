@@ -1,5 +1,6 @@
 function runModel_new(~)
     import publicsim.*;
+    global globalWeather     
     
     simTimes.startTime = 0;
     simTimes.endTime   = 200; % equivalent min
@@ -9,13 +10,17 @@ function runModel_new(~)
 
     % User input parsing
 %     input_file = "+airtaxi/sample_inputs_large.xlsx";
-    input_file = "+airtaxi/sample_inputs.xlsx";
+    input_file = '+airtaxi/sample_inputs.xlsx';
     [~,~,user_input] = xlsread(input_file);
     
     n_aircraft    = user_input{10,2};
     n_ports       = user_input{13,2};
     operator_info = user_input(1:4,2);
     
+    % Add weather to the simulation
+    globalWeather = airtaxi.agents.Weather();
+    simInst.AddCallee(globalWeather);
+
     % Add operator to the simulation
     operator = airtaxi.agents.Operator(operator_info);
     simInst.AddCallee(operator);
@@ -37,7 +42,7 @@ function runModel_new(~)
     end
     
     % Parse the user input file and assign the attributes to the agents
-    airtaxi.models.example_model.setupScenario(input_file,user_input,acAgents,portAgents,operator);
+    airtaxi.models.example_model.setupScenario(input_file,user_input,acAgents,portAgents,operator,globalWeather);
 
     % Run simulation
     simInst.runUntil(simTimes.startTime,simTimes.endTime);

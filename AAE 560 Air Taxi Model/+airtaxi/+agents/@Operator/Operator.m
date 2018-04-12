@@ -162,7 +162,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             vects = obj.vectors2Aircraft(acft);
             check = true;
             for i=1:size(vects,1)
-                if norm(vects(i,:)) < obj.takeoff_clearance
+                if norm(vects{i,:}) < obj.takeoff_clearance
                     check = false;
                     return;
                 end
@@ -274,8 +274,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 end
             end
         end
+        
         function v = vectors2Aircraft(obj,acft)
-            v = obj.vectors_bw_acft{acft.ac_id,:};
+            v = obj.vectors_bw_acft(:,acft.ac_id);
         end
         
         function dist = calcDistBetweenPorts(obj)

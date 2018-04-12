@@ -56,6 +56,7 @@ classdef Plotter < handle
             fig.Units = 'inches';
             fig.Position(3) = 10;
             fig.Position(4) = 7;
+            axis equal;
             movegui(fig,'center')
 %             xlabel('X [nMi]');ylabel('Y [nMi]')
         
