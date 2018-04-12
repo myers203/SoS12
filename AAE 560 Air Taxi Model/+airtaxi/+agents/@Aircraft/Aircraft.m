@@ -5,6 +5,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         % --- AC properties ---
         ac_id               % Numerical reference for the AC
         type                % AC Type
+        pilot_type
         num_seats           % Number of seats available in the AC
         cruise_speed        % Cruise speed
         range               % Max. distance in miles with a fully-charged battery
@@ -20,7 +21,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
     end
     
     properties (Access = protected)
-        pilot_type
+
         color
         
         % --- Customer ---
@@ -78,7 +79,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
-            obj.cruise_speed       = 30/...          % [mph]
+            % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
+            obj.cruise_speed       = 170/...          % [mph]
                 obj.convert.unit('hr2min'); %[mi/min]
             
             % only account for acft < XXX nmi away
@@ -129,9 +131,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 case {'enroute2pickup', 'onTrip'}
                     % find new vector
                     obj.navigate();
-                    
                     % update location based on last vector
-                    dist_flown = obj.updateLocation(time_since_update);
+                    obj.updateLocation(time_since_update);
             end
         end
         
@@ -216,14 +217,16 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             else  % Have not arrived yet
                 obj.setLocation([obj.location(1:2) + dist_flown*obj.dir_vect ...
                     obj.location(3) + alt_climb]);
-
+                
+                % Set dir_vect to new vector
+                obj.dir_vect = obj.dir_vect_next;
+                
                 % Check for collision with other aircraft.  Since air
                 % collisions come in pairs, this must be handled at the
                 % fleet (operator) level and is called here.
-                obj.parent.checkForCollision(obj);
+                %obj.parent.checkForCollision(obj);
 
-                % Set dir_vect to new vector
-                obj.dir_vect = obj.dir_vect_next;
+
             end
 			
 			% Update the realtime plot 
@@ -232,7 +235,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function midAirCollision(obj,s_rel)
             p = 1/(1+exp(5.5-.075*s_rel));
-            if p>.3
+            if p>.4
                 obj.setOperationMode('crash-fatal');
             else
                 obj.setOperationMode('crash-nonfatal')
@@ -242,10 +245,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 obj.speed = 0;
                 obj.destination = struct();
                 obj.plotter.traj = [];
-
                 % Update the realtime plot 
                 obj.plotter.updatePlot(obj.location);
-            else
                 obj.destroy()
             end
         end
@@ -371,7 +372,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         %necessary for finding relative speed of impact
         function v = getRealVelocity(obj)
-           v =  obj.speed.*obj.dir_vect;
+            v =  obj.speed.*obj.dir_vect;
         end
         
         function current_mode = getOperationMode(obj)

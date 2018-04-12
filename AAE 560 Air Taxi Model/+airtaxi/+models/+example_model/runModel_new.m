@@ -9,7 +9,7 @@ function runModel_new(~)
 
     % User input parsing
 %     input_file = "+airtaxi/sample_inputs_large.xlsx";
-    input_file = "+airtaxi/sample_inputs.xlsx";
+    input_file = "+airtaxi/sample_inputs_large.xlsx";
     [~,~,user_input] = xlsread(input_file);
     
     n_aircraft    = user_input{10,2};

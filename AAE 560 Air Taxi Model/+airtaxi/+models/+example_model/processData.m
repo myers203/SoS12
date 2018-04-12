@@ -34,14 +34,14 @@ function plotACModes(ac_data)
     flight_time_total = (sum(sum(flight_time_er2p))+...
         sum(sum(flight_time_onT)))/60
     %performance metric
-    f_rate = fatalities/flight_time_total; nonf_rate = non_fatalities/...
-        flight_time_total;
+    f_rate = fatalities*10e5/(flight_time_total); nonf_rate = non_fatalities*10e5/...
+        (flight_time_total);
    %performance metric in incidents per flight hour...hope to make this 
    %per 100,000 flight hours
    figure(2)
    bar([f_rate, nonf_rate])
    set(gca,'xticklabel',{'Fatality Rate','Non-fatality Rate'})
-   ylabel('Incidents per Flight Hour')
+   ylabel('Incidents per 100,000 Flight Hours')
    title('Collision Data')
    
 end
