@@ -6,6 +6,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         aircraft_fleet
         serviced_ports
         budget
+        totaled_aircraft
+        fatal_crashes
+        nonfatal_crashes
         
         trip_pricing
         dist_bw_ports
@@ -14,9 +17,11 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         location
         num_ports
         num_aircraft
+        num_tot_acft
         takeoff_clearance   
-        
         vectors_bw_acft
+        rel_speed_bw_acft
+        dist_bw_acft
         
         datalink_buffer
         datalink_buf_len
@@ -31,14 +36,20 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj = obj@publicsim.agents.hierarchical.Parent();
             obj.team_id      = op_info{1};
             obj.team_name    = op_info{2};
-            
-            obj.takeoff_clearance = 1;      % in nmi
+            obj.takeoff_clearance = 5;      % in nmi
 
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
             
+            obj.totaled_aircraft = {};
+            obj.num_tot_acft = 0;
+            obj.fatal_crashes = 0;
+            obj.nonfatal_crashes = 0;
+            
             obj.dist_bw_ports = []; 
             obj.vectors_bw_acft = {};
+            obj.rel_speed_bw_acft = {};
+            obj.dist_bw_acft = {};                        
             
             obj.datalink_buffer = [];
             obj.datalink_buf_len = 5;
@@ -71,9 +82,10 @@ classdef Operator < publicsim.agents.hierarchical.Parent
 
                 obj.calcVectsBetweenAcft();
                 obj.bufferDatalinkData();
-
                 obj.last_update_time = time;
+                obj.checkForCollision();
                 obj.scheduleAtTime(time+obj.run_interval);
+             
             end
         end
         
@@ -235,28 +247,47 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-        function checkForCollision(obj,acft)
-            for ii=1:obj.num_aircraft
-                if (obj.aircraft_fleet{ii}.ac_id ~= acft.ac_id) && ...
-                        (ismember(obj.aircraft_fleet{ii}.getOperationMode, ...
-                        {'onTrip', 'enroute2pickup'}))
-                    d = airtaxi.funcs.calc_dist3d(acft.location, ...
-                        obj.aircraft_fleet{ii}.getLocation());
-                    v_2 = obj.aircraft_fleet{ii}.getRealVelocity;
-                    v_1 = acft.getRealVelocity;
-                    %relative speed calculation
-                    s_rel = norm(v_1-v_2)*1.60934*60; %km/h for pdf  
-                    %will need to model pdf for inside of EASA's
-                    %clearance parameter
-                    if d < 1000/6076.12 % ft/nmi
-                        %both aircraft involved collide
-                        acft.midAirCollision(s_rel);
-                        obj.aircraft_fleet{ii}.midAirCollision(s_rel);
+        function checkForCollision(obj)
+            flag_crashed = zeros(1,obj.num_aircraft);
+            for i=1:obj.num_aircraft
+                for j=1:obj.num_aircraft
+                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'}))&&...
+                            (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'}))
+                        obj.calcRelSpeed;
+                        %relative speed calculation
+                        obj.rel_speed_bw_acft{i,j} = ...
+                            obj.rel_speed_bw_acft{i,j}*1.60934*60; %km/h for pdf  
+                        s_rel = obj.rel_speed_bw_acft{i,j};
+                        %will need to model pdf for inside of EASA's
+                        %clearance parameter
+                        if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
+                            %all aircraft involved collide
+                            flag_crashed(i) = 1;
+                            flag_crashed(j) = 1;
+                        end
                     end
+                end
+            end
+            
+            % reset all crashed aircraft
+            for i=1:obj.num_aircraft
+                if flag_crashed(i)
+                    % force collision to destroy
+                    obj.aircraft_fleet{i}.midAirCollision(s_rel);
                 end
             end
         end
         
+        function logFatalCrash(obj)
+            obj.fatal_crashes = obj.fatal_crashes+1;
+        end
+        
+        function logNonFatalCrash(obj)
+            obj.nonfatal_crashes = obj.nonfatal_crashes+1;
+        end
+
         function calcVectsBetweenAcft(obj)
             % calculate vectors between all aircraft for datalink buffering
             % and lookup.  Each column/row is vector from that aircraft to
@@ -264,12 +295,16 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             for i=1:obj.num_aircraft
                 for j=1:obj.num_aircraft
                     obj.vectors_bw_acft{i,j} = [Inf Inf Inf];
+                    obj.dist_bw_acft{i,j} = Inf;
                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'}))&&...
+                    (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
-                    
                         obj.vectors_bw_acft{i,j} = ...
                             obj.aircraft_fleet{i}.getLocation - ...
                             obj.aircraft_fleet{j}.getLocation;
+                        obj.dist_bw_acft{i,j} = ...
+                            norm(obj.vectors_bw_acft{i,j});
                     end
                 end
             end
@@ -293,7 +328,52 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-    end
+        function calcRelSpeed(obj)
+             for i=1:obj.num_aircraft
+                for j=1:obj.num_aircraft
+                    obj.rel_speed_bw_acft{i,j} = 0;
+                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'})) &&...
+                    (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'}))
+                        obj.rel_speed_bw_acft{i,j} = ...
+                            norm(obj.aircraft_fleet{i}.getRealVelocity - ...
+                            obj.aircraft_fleet{j}.getRealVelocity);                            
+                    end
+                end
+             end
+        end
+        
+%         function reshapeFleet(obj, acft)
+%         %function that builds a new aircraft and assigns it to
+%         %the fleet and a start port after a crash.
+%             % Set up Aircraft agents
+%          ac = airtaxi.agents.Aircraft(obj.num_ports);
+%          obj.addChild(ac);
+%          id = obj.num_aircraft+1;
+%             for i = 1:obj.num_ports
+%                 port = obj.serviced_ports{i};
+%                 if port.free_cust_slots ~=0
+%                     ac.location = port.location;
+%                     ac.current_port = port;
+%                     break;
+%                 end
+%             end
+%             ac.ac_id = id;
+%             ac.type = acft.type;
+%             ac.pilot_type = acft.pilot_type;
+%             ac.num_seats = acft.num_seats;
+%             ac.cruise_speed = acft.cruise_speed;
+%             ac.range = acft.range;
+%             ac.operation_mode = 'idle';
+%             obj.aircraft_fleet{id} = ac;
+%             obj.aircraft_fleet{id}.init();
+%             obj.totaled_aircraft{end+1} = acft;
+%             obj.num_aircraft = obj.num_aircraft+1;
+%             obj.num_tot_acft = obj.num_tot_acft+1;
+%         end
+        
+     end
     
     methods(Access = private)
 

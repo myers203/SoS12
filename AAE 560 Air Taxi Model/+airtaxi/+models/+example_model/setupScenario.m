@@ -4,12 +4,8 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     n_aircraft  = length(acAgents);
     team_id     = operator.team_id;
     
-
     [~,~,port_info]    = xlsread(input_file,'Ports');
     [~,~,ac_info]      = xlsread(input_file,'Aircraft');
-    
-    % AC Types and numbers purchased
-    [ac_types,ac_type_numbers] = parseFleet(user_input);
     
     % Ports serviced and chargers purchased
     [port_ids] = parseServicedPorts(user_input);
@@ -18,7 +14,8 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     ac_type_params     = parseACInfo(ac_info);
     
     % Parse the port info
-    [port_params,port_locations] = parsePortInfo(port_info,port_ids,n_ports);
+    [port_params,port_locations] =...
+        parsePortInfo(port_info,port_ids,n_ports);
     n_start_zones = port_params(:,2);
     % Assign port properties
     portAgents = setPortProperties(portAgents,port_params);
@@ -42,8 +39,18 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
         PortRange.Ymin = min(PortRange.Ymin,loc(2));
         PortRange.Ymax = max(PortRange.Ymax,loc(2));
     end
-    
+   
     weather.setZone(PortRange);
+
+    %Setting number of aircraft to be the same as available landing zones
+    %in case of user error.
+    if n_aircraft>sum(n_start_zones)
+        fprintf(2,['WARNING: The number of aircraft exceeds '...
+            'available landing zones.\n'...
+            'Setting fleet to be equal to number of landing zones...'])
+        n_aircraft = sum(n_start_zones);
+        acAgents = acAgents([1:n_aircraft]);
+    end
     
     for ii=1:n_aircraft
         acAgents{ii}.ac_id = ii; 
@@ -52,8 +59,7 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     n_aircraft_loop = n_aircraft;
     count = 1;
     %this loop structure will take ANY combination of number of ports,
-    %number of landing zones, and number of aircraft as long as the number
-    %of aircraft is less than the number of total landing zones
+    %number of landing zones, and number of aircraft.
     while sum(n_start_zones>0) && n_aircraft_loop>0
         for ii=1:n_ports
             if n_start_zones(ii)>0
@@ -104,19 +110,6 @@ end
 function portAgents = setPortProperties(portAgents,port_params)
     for ii=1:length(portAgents)
         portAgents{ii}.landing_slots = port_params(ii,2);
-    end
-end
-
-function acAgents = setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_params)
-    ac_count = 1;
-    for ii=1:length(ac_types)
-        for jj=1:ac_type_numbers(ii)
-            acAgents{ac_count}.type  = ac_types{ii};
-            acAgents{ac_count}.setCruiseSpeed(ac_type_params(ii,1));
-            acAgents{ac_count}.range = ac_type_params(ii,2);
-            acAgents{ac_count}.num_seats = ac_type_params(ii,3);
-            ac_count = ac_count + 1;
-        end
     end
 end
 
