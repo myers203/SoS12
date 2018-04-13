@@ -74,7 +74,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     obj.spawnDemand(port,time);
                 end
 
-                obj.calcVectsBetweenAcft();
                 obj.bufferDatalinkData();
                 obj.last_update_time = time;
                 obj.checkForCollision();
@@ -168,7 +167,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             vects = obj.vectors2Aircraft(acft);
             check = true;
             for i=1:size(vects,1)
-                if norm(vects(i,:)) < obj.takeoff_clearance
                     check = false;
                     return;
                 end
@@ -242,39 +240,31 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
+<<<<<<< HEAD
 
            check = cell2mat(obj.dist_bw_acft);
            check = check<obj.danger_threshold;
            check = check(check==0);
            
+=======
+            flag_crashed = zeros(1,obj.num_aircraft);
+>>>>>>> master
             for i=1:obj.num_aircraft
                 for j=1:obj.num_aircraft
                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))&&...
-                    (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
-                        obj.calcRelSpeed;
-                        %relative speed calculation
-                        obj.rel_speed_bw_acft{i,j} = ...
-                            obj.rel_speed_bw_acft{i,j}*1.60934*60; %km/h for pdf  
                         s_rel = obj.rel_speed_bw_acft{i,j};
                         %will need to model pdf for inside of EASA's
                         %clearance parameter
                         if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
                             %all aircraft involved collide
-                                obj.aircraft_fleet{i}.midAirCollision(s_rel)
-                                obj.aircraft_fleet{j}.midAirCollision(s_rel);
-                                %acft1 = obj.aircraft_fleet{i};
-                                %obj.reshapeFleet(acft1);                                
-                                %acft2 = obj.aircraft_fleet{j};
-                               % obj.reshapeFleet(acft2);
                         end
                     end
                 end
             end
         end
         
-        function calcVectsBetweenAcft(obj)
             % calculate vectors between all aircraft for datalink buffering
             % and lookup.  Each column/row is vector from that aircraft to
             % all others
@@ -295,10 +285,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 end
             end
         end
-       
         
         function v = vectors2Aircraft(obj,acft)
-            v = obj.vectors_bw_acft{acft.ac_id,:};
         end
         
         function dist = calcDistBetweenPorts(obj)
@@ -313,22 +301,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     dist(ii,jj) = airtaxi.funcs.calc_dist(port1_loc,port2_loc);
                 end
             end
-        end
-        
-        function calcRelSpeed(obj)
-             for i=1:obj.num_aircraft
-                for j=1:obj.num_aircraft
-                    obj.rel_speed_bw_acft{i,j} = 0;
-                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'})) &&...
-                    (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))
-                        obj.rel_speed_bw_acft{i,j} = ...
-                            norm(obj.aircraft_fleet{i}.getRealVelocity - ...
-                            obj.aircraft_fleet{j}.getRealVelocity);                            
-                    end
-                end
-             end
         end
         
 %         function reshapeFleet(obj, acft)

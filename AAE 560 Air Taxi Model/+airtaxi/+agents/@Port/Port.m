@@ -69,9 +69,7 @@ classdef Port < airtaxi.agents.Agent & publicsim.agents.base.Locatable & publics
                 end
             end
             % delete picked up customers
-            if ~isempty(del_flag)
-                obj.current_customers = obj.current_customers(~del_flag);
-            end
+            obj.current_customers = obj.current_customers(~del_flag);
         end
         
         function slotNum = fillFirstCustSlot(obj)
@@ -105,7 +103,6 @@ classdef Port < airtaxi.agents.Agent & publicsim.agents.base.Locatable & publics
         function v = getPosition(obj)
             v = obj.location;
         end
-        
         
         function customer_data = getCustomerData(obj)
 			% Customer data for logging 

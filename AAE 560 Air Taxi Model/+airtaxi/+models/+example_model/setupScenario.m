@@ -1,15 +1,11 @@
-function setupScenario(input_file,user_input,acAgents,portAgents,operator)
+function setupScenario(input_file,user_input,acAgents,portAgents,operator,weather)
     % Currently assumes a single operator
     n_ports     = length(portAgents);
     n_aircraft  = length(acAgents);
     team_id     = operator.team_id;
     
-
-    [~,~,port_info]    = xlsread(input_file,"Ports");
-    [~,~,ac_info]      = xlsread(input_file,"Aircraft");
-    
-    % AC Types and numbers purchased
-    [ac_types,ac_type_numbers] = parseFleet(user_input);
+    [~,~,port_info]    = xlsread(input_file,'Ports');
+    [~,~,ac_info]      = xlsread(input_file,'Aircraft');
     
     % Ports serviced and chargers purchased
     [port_ids] = parseServicedPorts(user_input);
@@ -24,18 +20,25 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     % Assign port properties
     portAgents = setPortProperties(portAgents,port_params);
         
-    % Assign aircraft properties
-    acAgents =...
-        setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_params);
-
+    PortRange.Xmin = port_locations{1}(1);
+    PortRange.Ymin = port_locations{1}(1);
+    PortRange.Xmax = PortRange.Xmin;
+    PortRange.Ymax = PortRange.Ymin;
     
     for ii=1:n_ports
         loc = port_locations{ii};
         loc(3) = 0;
         portAgents{ii}.setLocation(loc);
         portAgents{ii}.port_id = port_ids(ii);
+        
+        PortRange.Xmin = min(PortRange.Xmin,loc(2));
+        PortRange.Xmax = max(PortRange.Xmax,loc(2));
+        PortRange.Ymin = min(PortRange.Ymin,loc(2));
+        PortRange.Ymax = max(PortRange.Ymax,loc(2));
     end
-    
+   
+    weather.setZone(PortRange);
+
     %Setting number of aircraft to be the same as available landing zones
     %in case of user error.
     if n_aircraft>sum(n_start_zones)
@@ -107,19 +110,6 @@ function portAgents = setPortProperties(portAgents,port_params)
     end
 end
 
-function acAgents = setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_params)
-    ac_count = 1;
-    for ii=1:length(ac_types)
-        for jj=1:ac_type_numbers(ii)
-            acAgents{ac_count}.type  = ac_types{ii};
-            acAgents{ac_count}.setCruiseSpeed(ac_type_params(ii,1));
-            acAgents{ac_count}.range = ac_type_params(ii,2);
-            acAgents{ac_count}.num_seats = ac_type_params(ii,3);
-            ac_count = ac_count + 1;
-        end
-    end
-end
-
 function [ac_types,ac_type_numbers] = parseFleet(user_input)
     ii = 3;
     ac_types = {};
@@ -143,7 +133,7 @@ function [port_ids] = parseServicedPorts(user_input)
         end
         % Check if the port is serviced
         if strcmpi(user_input{13,ii},'Yes')
-            port_ids(end+1) = str2double(extractAfter(user_input{12,ii},"Port ")); %#ok<*AGROW>
+            port_ids(end+1) = str2double(extractAfter(user_input{12,ii},'Port ')); %#ok<*AGROW>
         end
         ii = ii+1;
     end
