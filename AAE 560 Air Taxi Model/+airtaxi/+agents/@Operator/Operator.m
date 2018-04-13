@@ -80,7 +80,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     obj.spawnDemand(port,time);
                 end
 
-                obj.calcVectsBetweenAcft();
+                obj.calcAircraftDynamicData();
                 obj.bufferDatalinkData();
                 obj.last_update_time = time;
                 obj.checkForCollision();
@@ -255,10 +255,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                             {'onTrip', 'enroute2pickup'}))&&...
                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
-                        obj.calcRelSpeed;
-                        %relative speed calculation
-                        obj.rel_speed_bw_acft{i,j} = ...
-                            obj.rel_speed_bw_acft{i,j}*1.60934*60; %km/h for pdf  
+
                         s_rel = obj.rel_speed_bw_acft{i,j};
                         %will need to model pdf for inside of EASA's
                         %clearance parameter
@@ -274,7 +271,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % reset all crashed aircraft
             for i=1:obj.num_aircraft
                 if flag_crashed(i)
-                    % force collision
+                    % force collision to destroy
                     obj.aircraft_fleet{i}.midAirCollision(s_rel);
                 end
             end
@@ -288,7 +285,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.nonfatal_crashes = obj.nonfatal_crashes+1;
         end
 
-        function calcVectsBetweenAcft(obj)
+        function calcAircraftDynamicData(obj)
             % calculate vectors between all aircraft for datalink buffering
             % and lookup.  Each column/row is vector from that aircraft to
             % all others
@@ -296,15 +293,30 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 for j=1:obj.num_aircraft
                     obj.vectors_bw_acft{i,j} = [Inf Inf Inf];
                     obj.dist_bw_acft{i,j} = Inf;
+                    obj.rel_speed_bw_acft{i,j} = 0;
+
                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))&&...
                     (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
+                        
+                        % calc vectors between aircraft
                         obj.vectors_bw_acft{i,j} = ...
                             obj.aircraft_fleet{i}.getLocation - ...
                             obj.aircraft_fleet{j}.getLocation;
+                        
+                        % calc distance between aircraft
                         obj.dist_bw_acft{i,j} = ...
                             norm(obj.vectors_bw_acft{i,j});
+                        
+                        % calc relative speed between aircraft
+                        obj.rel_speed_bw_acft{i,j} = ...
+                            norm(obj.aircraft_fleet{i}.getRealVelocity - ...
+                            obj.aircraft_fleet{j}.getRealVelocity);                            
+
+                        %relative speed calculation to km/h for pdf
+                        obj.rel_speed_bw_acft{i,j} = ...
+                            obj.rel_speed_bw_acft{i,j}*1.60934*60; %km/h for pdf  
                     end
                 end
             end
@@ -326,22 +338,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     dist(ii,jj) = airtaxi.funcs.calc_dist(port1_loc,port2_loc);
                 end
             end
-        end
-        
-        function calcRelSpeed(obj)
-             for i=1:obj.num_aircraft
-                for j=1:obj.num_aircraft
-                    obj.rel_speed_bw_acft{i,j} = 0;
-                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'})) &&...
-                    (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))
-                        obj.rel_speed_bw_acft{i,j} = ...
-                            norm(obj.aircraft_fleet{i}.getRealVelocity - ...
-                            obj.aircraft_fleet{j}.getRealVelocity);                            
-                    end
-                end
-             end
         end
         
 %         function reshapeFleet(obj, acft)

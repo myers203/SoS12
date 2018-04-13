@@ -210,9 +210,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 else  % in normal visual range
                     % now filter out those blocked by weather
                     vis = 1.0;
-                    for i=1:length(w)
+                    for j=1:length(w)
                         % accumulate all visibility impacts
-                        vis = vis * w{i}.getVisibility(obj.location, ...
+                        vis = vis * w{j}.getVisibility(obj.location, ...
                                 obj.location + acftRelPos{i,:});
                     end
                     if rand() > vis
