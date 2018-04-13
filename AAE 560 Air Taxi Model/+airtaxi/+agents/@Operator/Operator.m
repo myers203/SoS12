@@ -274,7 +274,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % reset all crashed aircraft
             for i=1:obj.num_aircraft
                 if flag_crashed(i)
-                    % force collision to destroy
+                    % force collision
                     obj.aircraft_fleet{i}.midAirCollision(s_rel);
                 end
             end

@@ -1,5 +1,5 @@
 classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
-        & publicsim.agents.hierarchical.Child & publicsim.agents.physical.Destroyable
+        & publicsim.agents.hierarchical.Child
     % Aircraft agent
     properties
         % --- AC properties ---

@@ -20,9 +20,6 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     % Assign port properties
     portAgents = setPortProperties(portAgents,port_params);
         
-    % Assign aircraft properties
-    acAgents = setACProperties(acAgents,ac_types,ac_type_numbers,ac_type_params);
-
     PortRange.Xmin = port_locations{1}(1);
     PortRange.Ymin = port_locations{1}(1);
     PortRange.Xmax = PortRange.Xmin;
