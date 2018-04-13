@@ -7,6 +7,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         serviced_ports
         budget
         totaled_aircraft
+        fatal_crashes
+        nonfatal_crashes
         
         trip_pricing
         dist_bw_ports
@@ -38,6 +40,11 @@ classdef Operator < publicsim.agents.hierarchical.Parent
 
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
+            
+            obj.totaled_aircraft = {};
+            obj.num_tot_acft = 0;
+            obj.fatal_crashes = 0;
+            obj.nonfatal_crashes = 0;
             
             obj.dist_bw_ports = []; 
             obj.vectors_bw_acft = {};
@@ -241,11 +248,12 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
+            flag_crashed = zeros(1,obj.num_aircraft);
             for i=1:obj.num_aircraft
                 for j=1:obj.num_aircraft
                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))&&...
-                    (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+                            (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
                         obj.calcRelSpeed;
                         %relative speed calculation
@@ -256,18 +264,30 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                         %clearance parameter
                         if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
                             %all aircraft involved collide
-                                obj.aircraft_fleet{i}.midAirCollision(s_rel)
-                                obj.aircraft_fleet{j}.midAirCollision(s_rel);
-                                %acft1 = obj.aircraft_fleet{i};
-                                %obj.reshapeFleet(acft1);                                
-                                %acft2 = obj.aircraft_fleet{j};
-                               % obj.reshapeFleet(acft2);
+                            flag_crashed(i) = 1;
+                            flag_crashed(j) = 1;
                         end
                     end
                 end
             end
+            
+            % reset all crashed aircraft
+            for i=1:obj.num_aircraft
+                if flag_crashed(i)
+                    % force collision to destroy
+                    obj.aircraft_fleet{i}.midAirCollision(s_rel);
+                end
+            end
         end
         
+        function logFatalCrash(obj)
+            obj.fatal_crashes = obj.fatal_crashes+1;
+        end
+        
+        function logNonFatalCrash(obj)
+            obj.nonfatal_crashes = obj.nonfatal_crashes+1;
+        end
+
         function calcVectsBetweenAcft(obj)
             % calculate vectors between all aircraft for datalink buffering
             % and lookup.  Each column/row is vector from that aircraft to
@@ -289,7 +309,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 end
             end
         end
-       
         
         function v = vectors2Aircraft(obj,acft)
             v = obj.vectors_bw_acft{acft.ac_id,:};

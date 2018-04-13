@@ -4,11 +4,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
     properties
         % --- AC properties ---
         ac_id               % Numerical reference for the AC
-        type                % AC Type
         pilot_type
-        num_seats           % Number of seats available in the AC
         cruise_speed        % Cruise speed
-        range               % Max. distance in miles with a fully-charged battery
         
         % --- Ops properties ---
         operation_mode      
@@ -226,7 +223,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 % fleet (operator) level and is called here.
                 %obj.parent.checkForCollision(obj);
 
-
             end
 			
 			% Update the realtime plot 
@@ -236,19 +232,19 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         function midAirCollision(obj,s_rel)
             p = 1/(1+exp(5.5-.075*s_rel));
             if p>.4
-                obj.setOperationMode('crash-fatal');
+                obj.parent.logFatalCrash();
+%                 obj.setOperationMode('crash-fatal');
             else
-                obj.setOperationMode('crash-nonfatal')
+                obj.parent.logNonFatalCrash();
+%                 obj.setOperationMode('crash-nonfatal')
             end
             
-            if obj.plot_crashes
-                obj.speed = 0;
-                obj.destination = struct();
-                obj.plotter.traj = [];
-                % Update the realtime plot 
-                obj.plotter.updatePlot(obj.location);
-                obj.destroy()
-            end
+            obj.operation_mode = 'idle';
+            obj.location = obj.nav_dest;
+            obj.speed = 0;
+            obj.destination = struct();
+            obj.plotter.traj = [];
+            obj.plotter.updatePlot(obj.location);
         end
         
         function reachedDestination(obj)

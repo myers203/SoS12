@@ -106,7 +106,6 @@ classdef Port < airtaxi.agents.Agent & publicsim.agents.base.Locatable & publics
             v = obj.location;
         end
         
-        
         function customer_data = getCustomerData(obj)
 			% Customer data for logging 
             customer_data = struct();
