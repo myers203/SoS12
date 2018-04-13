@@ -20,6 +20,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         vectors_bw_acft
         rel_speed_bw_acft
         dist_bw_acft
+        danger_threshold
         
         datalink_buffer
         datalink_buf_len
@@ -35,7 +36,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.team_id      = op_info{1};
             obj.team_name    = op_info{2};
             obj.takeoff_clearance = 5;      % in nmi
-
+            obj.danger_threshold = 100/6076.12;
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
             
@@ -241,6 +242,11 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
+
+           check = cell2mat(obj.dist_bw_acft);
+           check = check<obj.danger_threshold;
+           check = check(check==0);
+           
             for i=1:obj.num_aircraft
                 for j=1:obj.num_aircraft
                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
