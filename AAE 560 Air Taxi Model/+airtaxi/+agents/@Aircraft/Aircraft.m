@@ -270,10 +270,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             end
             v = obj.location;
             plot(v(1),v(2),'rx','MarkerSize',12);
-            fprintf(obj.operation_mode)
-            crash_location = obj.location
-            cur_port_loc = obj.current_port
-            nav_dest = obj.nav_dest
             obj.operation_mode = 'idle';
             obj.location = obj.nav_dest;
             obj.speed = 0;
