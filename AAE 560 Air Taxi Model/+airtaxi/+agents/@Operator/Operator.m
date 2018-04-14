@@ -248,26 +248,49 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
-            flag_crashed = zeros(1,obj.num_aircraft);
-            for i=1:obj.num_aircraft
-                for j=1:obj.num_aircraft
-                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))&&...
-                            (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))
+%             flag_crashed = zeros(1,obj.num_aircraft);
+%             for i=1:obj.num_aircraft
+%                 for j=1:obj.num_aircraft
+%                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))&&...
+%                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))
+% 
+%                         s_rel = obj.rel_speed_bw_acft{i,j};
+%                         %will need to model pdf for inside of EASA's
+%                         %clearance parameter
+%                         if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
+%                             %all aircraft involved collide
+%                             flag_crashed(i) = 1;
+%                             flag_crashed(j) = 1;
+%                         end
+%                     end
+%                 end
+%             end
 
-                        s_rel = obj.rel_speed_bw_acft{i,j};
-                        %will need to model pdf for inside of EASA's
-                        %clearance parameter
-                        if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
-                            %all aircraft involved collide
-                            flag_crashed(i) = 1;
-                            flag_crashed(j) = 1;
-                        end
-                    end
+            check = cell2mat(obj.dist_bw_acft);
+
+            A = tril(check,-1); %use only the lower triangular matrix not including the diagonal terms
+            B = []; %need an initial empty matrix
+            col = 1; %column count
+            for row = 2:length(A)
+                B = [B;cat(1,A(row:end,col))];
+                col = col + 1;
+            end
+
+            count = 1;
+            deletionNeeded = [];
+            for row = 1:length(B)
+                if(B(row)<100/6076.12) %Need to change 100/6076.12 to some threshould distance value 
+                    [deletionRow,deletionColumn] = find(A==B(row));
+                    deletionNeeded = [deletionNeeded;deletionRow;deletionColumn];
+                    count = count + 1;
                 end
             end
-            
+
+            deletionNeeded = unique(deletionNeeded)'; %deletionNeeded = the indices of the aircraft that are involved in a crash
+            flag_crashed(deletionNeeded(:));
+              
             % reset all crashed aircraft
             for i=1:obj.num_aircraft
                 if flag_crashed(i)
