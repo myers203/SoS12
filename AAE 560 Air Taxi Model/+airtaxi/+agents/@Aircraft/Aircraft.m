@@ -267,7 +267,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 obj.parent.logNonFatalCrash();
 %                 obj.setOperationMode('crash-nonfatal')
             end
-            
+            v = obj.location;
+            plot(v(1),v(2),'rx','MarkerSize',12);
             obj.operation_mode = 'idle';
             obj.location = obj.nav_dest;
             obj.speed = 0;
