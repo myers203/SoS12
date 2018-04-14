@@ -231,7 +231,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             dist2dest = airtaxi.funcs.calc_dist(obj.location,obj.nav_dest);
             
             dist_flown = obj.speed*time_since_update;
-            alt_climb  = obj.climb_rate*time_since_update;
+            alt_climb  = 1;
+            obj.location(3) = alt_climb;
             
 			% Update arrival at the ports 
             if dist2dest < obj.arrival_threshold
@@ -242,7 +243,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 end
             else  % Have not arrived yet
                 obj.setLocation([obj.location(1:2) + dist_flown*obj.dir_vect ...
-                    obj.location(3) + alt_climb]);
+                    obj.location(3)]);
                 
                 % Set dir_vect to new vector
                 obj.dir_vect = obj.dir_vect_next;
@@ -269,6 +270,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             end
             v = obj.location;
             plot(v(1),v(2),'rx','MarkerSize',12);
+            fprintf(obj.operation_mode)
+            crash_location = obj.location
+            cur_port_loc = obj.current_port
+            nav_dest = obj.nav_dest
             obj.operation_mode = 'idle';
             obj.location = obj.nav_dest;
             obj.speed = 0;
@@ -292,7 +297,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         end
         
         function reachedDestination(obj)
-            obj.setLocation([obj.destination.location(1:2),obj.location(3)]);
+            obj.setLocation([obj.destination.location(1:2),0]);
             obj.current_port = obj.destination.id;
             obj.destination = struct();
             obj.nav_dest = [];
@@ -335,13 +340,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         end
         
         function reachedPickupPort(obj)
-            obj.setLocation([obj.pickup.location(1:2),obj.location(3)]);
+            obj.setLocation([obj.pickup.location(1:2),0]);
             obj.updateArrival(obj.pickup.id);
             obj.setOperationMode('wait4trip');
         end
         
         function startPickup(obj)
             obj.setOperationMode('enroute2pickup');
+            obj.location(3) = 1;
             obj.nav_dest = obj.pickup.location;
             obj.dir_vect = obj.getVector(obj.location, obj.nav_dest);
             obj.speed    = obj.cruise_speed;
@@ -349,6 +355,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function startTrip(obj)
             obj.setOperationMode('onTrip');
+            obj.location(3) = 1;
             obj.nav_dest = obj.destination.location;
             obj.dir_vect = obj.getVector(obj.location, obj.nav_dest);
             obj.speed    = obj.cruise_speed;

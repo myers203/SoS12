@@ -37,7 +37,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj = obj@publicsim.agents.hierarchical.Parent();
             obj.team_id      = op_info{1};
             obj.team_name    = op_info{2};
-            obj.takeoff_clearance = 5;      % in nmi
+            obj.takeoff_clearance = 2;      % in nmi
             obj.danger_threshold = 100/6076.12;
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
@@ -173,13 +173,31 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function check = getClearance(obj,acft)
             vects = obj.vectors2Aircraft(acft);
-            check = true;
+            check1 = true;
             for i=1:size(vects,1)
                 if norm(vects{i,:}) < obj.takeoff_clearance
-                    check = false;
-                    return;
+                    check1 = false;
+                    break;
                 end
             end
+            
+            check2 = true;
+            %this loop checks for vehicles that might takeoff
+            %simultaneously at the same vertiport
+            for i=1:size(vects,1)
+               if (strcmp(obj.aircraft_fleet{i}.operation_mode, 'onTrip')...
+                       ||strcmp(obj.aircraft_fleet{i}.operation_mode, 'enroute2pickup'))...
+                       && (strcmp(acft.operation_mode, 'wait4trip')...
+                       ||strcmp(acft.operation_mode, 'wait2pickup'))&& ...
+                       sum(obj.aircraft_fleet{i}.location(1:2)==acft.location(1:2))==2
+                   check2 = false;
+                   break;
+               end
+                   
+            end
+            
+            check = check1==check2;
+            
         end
         
         function bufferDatalinkData(obj)
