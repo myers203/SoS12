@@ -1,14 +1,13 @@
 classdef Operator < publicsim.agents.hierarchical.Parent
     % The airline operator
     properties 
-        team_id         
-        team_name       
         aircraft_fleet
         serviced_ports
-        budget
         totaled_aircraft
-        fatal_crashes
-        nonfatal_crashes
+        fatal_crashes_human
+        fatal_crashes_auto
+        nonfatal_crashes_human
+        nonfatal_crashes_auto
         
         trip_pricing
         dist_bw_ports
@@ -19,6 +18,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         num_aircraft
         num_tot_acft
         takeoff_clearance   
+        landing_clearance
+        separation_distance
         vectors_bw_acft
         rel_speed_bw_acft
         dist_bw_acft
@@ -32,19 +33,21 @@ classdef Operator < publicsim.agents.hierarchical.Parent
     end
     
     methods
-        function obj = Operator(op_info)
+        function obj = Operator()
             obj = obj@publicsim.agents.hierarchical.Parent();
-            obj.team_id      = op_info{1};
-            obj.team_name    = op_info{2};
-            obj.takeoff_clearance = 5;      % in nmi
+            obj.takeoff_clearance   = 0;
+            obj.separation_distance = 0;
+            obj.separation_distance = 0;
 
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
             
             obj.totaled_aircraft = {};
             obj.num_tot_acft = 0;
-            obj.fatal_crashes = 0;
-            obj.nonfatal_crashes = 0;
+            obj.fatal_crashes_human = 0;
+            obj.fatal_crashes_auto = 0;
+            obj.nonfatal_crashes_human = 0;
+            obj.nonfatal_crashes_auto = 0;
             
             obj.dist_bw_ports = []; 
             obj.vectors_bw_acft = {};
@@ -188,7 +191,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function data = getDatalinkData(obj,acft)
             data = obj.datalink_buffer{1};
-            data = data{acft.ac_id,:};
+            data = data(:,acft.ac_id);
         end
 
         function setPickupArrival(obj,port_id,ac_id)
@@ -204,6 +207,22 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         function setAircraft(obj,acft)
             obj.aircraft_fleet = acft;
             obj.num_aircraft   = length(acft);
+        end
+
+        function setTakeoffClearance(obj,clearance)
+            obj.takeoff_clearance   = clearance;
+        end
+        
+        function setLandingClearance(obj,clearance)
+            obj.landing_clearance   = clearance;
+        end
+        
+        function setSeparationDistance(obj,dist)
+            obj.separation_distance = dist;
+        end
+        
+        function setNetDelay(obj,delay)
+            obj.datalink_buf_len = delay;
         end
         
         function port_id = findNearbyPort(obj,ac_location)
@@ -291,12 +310,20 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-        function logFatalCrash(obj)
-            obj.fatal_crashes = obj.fatal_crashes+1;
+        function logFatalCrash(obj,mode)
+            if strcmp(mode,'human')
+                obj.fatal_crashes_human = obj.fatal_crashes_human+1;
+            else
+                obj.fatal_crashes_auto = obj.fatal_crashes_auto+1;
+            end
         end
         
-        function logNonFatalCrash(obj)
-            obj.nonfatal_crashes = obj.nonfatal_crashes+1;
+        function logNonFatalCrash(obj,mode)
+            if strcmp(mode,'human')
+                obj.nonfatal_crashes_human = obj.nonfatal_crashes_human+1;
+            else
+                obj.nonfatal_crashes_auto = obj.nonfatal_crashes_auto+1;
+            end
         end
 
         function calcAircraftDynamicData(obj)

@@ -84,7 +84,7 @@ classdef Weather < publicsim.agents.hierarchical.Parent
         end
         
         function setZone(obj,zone)
-            obj.region_area = [zone.Xmin zone.Xmax; zone.Ymin zone.Ymax];
+            obj.region_area = [ zone.xLim ; zone.yLim ];
         end
         
         function vis = getVisibility(obj,loc1,loc2)
