@@ -3,7 +3,7 @@ function runModel_new(~)
     global globalWeather     
     
     simTimes.startTime = 0;
-    simTimes.endTime   = 200; % equivalent min
+    simTimes.endTime   = 500; % equivalent min
                                % 1 Sim s = 1 actual min
     logPath            = './tmp/example_model';
     simInst            = publicsim.sim.Instance(logPath);

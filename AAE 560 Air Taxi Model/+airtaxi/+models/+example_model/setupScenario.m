@@ -16,7 +16,6 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     % Parse the port info
     [port_params,port_locations] =...
         parsePortInfo(port_info,port_ids,n_ports);
-    n_start_zones = port_params(:,2);
     % Assign port properties
     portAgents = setPortProperties(portAgents,port_params);
         
@@ -38,16 +37,6 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     end
    
     weather.setZone(PortRange);
-
-    %Setting number of aircraft to be the same as available landing zones
-    %in case of user error.
-    if n_aircraft>sum(n_start_zones)
-        fprintf(2,['WARNING: The number of aircraft exceeds '...
-            'available landing zones.\n'...
-            'Setting fleet to be equal to number of landing zones...'])
-        n_aircraft = sum(n_start_zones);
-        acAgents = acAgents([1:n_aircraft]);
-    end
     
     for ii=1:n_aircraft
         acAgents{ii}.ac_id = ii; 
@@ -55,25 +44,17 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     
     n_aircraft_loop = n_aircraft;
     count = 1;
-    %this loop structure will take ANY combination of number of ports,
-    %number of landing zones, and number of aircraft.
-    while sum(n_start_zones>0) && n_aircraft_loop>0
+    %this loop structure will take any combination of number of ports 
+    %and number of aircraft.
+    while n_aircraft_loop>0
         for ii=1:n_ports
-            if n_start_zones(ii)>0
-                start_port = ii;
-                n_start_zones(ii) = n_start_zones(ii)-1;
-                n_aircraft_loop=n_aircraft_loop-1;
-            else
-                continue;
-            end
+            start_port = ii;
+            n_aircraft_loop=n_aircraft_loop-1;
             loc = port_locations{start_port};
             loc(3) = 0;
             acAgents{count}.setLocation(loc);
             acAgents{count}.current_port = start_port;
             count=count+1;
-            if count > n_aircraft
-                break
-            end
         end
     end
     
