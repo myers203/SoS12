@@ -1,6 +1,7 @@
 function runModel_new(~)
     import publicsim.*;
-    global globalWeather     
+    global globalWeather 
+    %tic
     
     simTimes.startTime = 0;
     simTimes.endTime   = 200; % equivalent min
@@ -54,4 +55,5 @@ function runModel_new(~)
     
     % Postprocessing
     airtaxi.models.example_model.processData(parsed_data,acAgents,portAgents,operator)
+    %toc
 end

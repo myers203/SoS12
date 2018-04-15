@@ -248,32 +248,46 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
-            flag_crashed = zeros(1,obj.num_aircraft);
-            for i=1:obj.num_aircraft
-                for j=1:obj.num_aircraft
-                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))&&...
-                            (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))
+%             flag_crashed = zeros(1,obj.num_aircraft);
+%             for i=1:obj.num_aircraft
+%                 for j=1:obj.num_aircraft
+%                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))&&...
+%                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))
+% 
+%                         s_rel = obj.rel_speed_bw_acft{i,j};
+%                         %will need to model pdf for inside of EASA's
+%                         %clearance parameter
+%                         if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
+%                             %all aircraft involved collide
+%                             flag_crashed(i) = 1;
+%                             flag_crashed(j) = 1;
+%                         end
+%                     end
+%                 end
+%             end
+%             
+%             % reset all crashed aircraft
+%             for i=1:obj.num_aircraft
+%                 if flag_crashed(i)
+%                     % force collision to destroy
+%                     obj.aircraft_fleet{i}.midAirCollision(s_rel);
+%                 end
+%             end
 
-                        s_rel = obj.rel_speed_bw_acft{i,j};
-                        %will need to model pdf for inside of EASA's
-                        %clearance parameter
-                        if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
-                            %all aircraft involved collide
-                            flag_crashed(i) = 1;
-                            flag_crashed(j) = 1;
-                        end
-                    end
-                end
-            end
+            check = cell2mat(obj.dist_bw_acft);
+            A = tril(check,-1); %use only the lower triangular matrix not including the diagonal term
             
-            % reset all crashed aircraft
-            for i=1:obj.num_aircraft
-                if flag_crashed(i)
-                    % force collision to destroy
-                    obj.aircraft_fleet{i}.midAirCollision(s_rel);
+            row = 2; %row count
+            for col = 1:length(A) - 1
+                while(row < length(A)+1)
+                    if(A(row,col) <= 100/6076.12) 
+                        obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row});
+                    end
+                    row = row + 1; 
                 end
+                row = col + 2;
             end
         end
         
