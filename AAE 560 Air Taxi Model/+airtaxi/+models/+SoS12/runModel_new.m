@@ -1,35 +1,34 @@
-function runModel_new(~)
+function results = runModel_new(input_file,port_file,runNum,simSeconds)
     import publicsim.*;
     global globalWeather     
     
-    simTimes.startTime = 0;
-    simTimes.endTime   = 200; % equivalent min
-                               % 1 Sim s = 1 actual min
-    logPath            = './tmp/example_model';
-    simInst            = publicsim.sim.Instance(logPath);
+    % Parse Data Input File
+    [~,~,params] = xlsread(input_file,'params');
+    portConfig = params{runNum+1,11};
+    [~,~,portData] = xlsread(port_file,portConfig);
 
+    simTimes.startTime = 0;
+    simTimes.endTime   = simSeconds; % equivalent min
+                               % 1 Sim s = 1 actual min
+    logPath            = strcat('./tmp/run',num2str(runNum),'example_model');
+    simInst            = publicsim.sim.Instance(logPath);
+    
     % User input parsing
-%      input_file = "+airtaxi/sample_inputs.xlsx";
-    input_file = '+airtaxi/sample_inputs_large.xlsx';
-%     input_file = '+airtaxi/sample_inputs_small.xlsx';
-    [~,~,user_input] = xlsread(input_file);
-    
-    n_aircraft    = user_input{10,2};
-    n_ports       = user_input{13,2};
-    operator_info = user_input(1:4,2);
-    
+    n_aircraft    = params{runNum+1,2} + params{runNum+1,3};
+    n_ports       = size(portData,1)-1;
+
     % Add weather to the simulation
     globalWeather = airtaxi.agents.Weather();
     simInst.AddCallee(globalWeather);
 
     % Add operator to the simulation
-    operator = airtaxi.agents.Operator(operator_info);
+    operator = airtaxi.agents.Operator();
     simInst.AddCallee(operator);
 
     % Set up Aircraft agents
     acAgents = cell(1,n_aircraft);
     for i=1:n_aircraft
-        ac = airtaxi.agents.Aircraft(n_ports);
+        ac = airtaxi.agents.Aircraft();
         acAgents{i} = ac;
         operator.addChild(ac);
     end
@@ -43,7 +42,8 @@ function runModel_new(~)
     end
     
     % Parse the user input file and assign the attributes to the agents
-    airtaxi.models.example_model.setupScenario(input_file,user_input,acAgents,portAgents,operator,globalWeather);
+    airtaxi.models.SoS12.setupScenario(input_file,port_file,runNum, ...
+        acAgents,portAgents,operator,globalWeather);
 
     % Run simulation
     simInst.runUntil(simTimes.startTime,simTimes.endTime);
@@ -53,5 +53,5 @@ function runModel_new(~)
     parsed_data = airtaxi.funcs.parseLogs(logPath,acAgents,portAgents,duration);
     
     % Postprocessing
-    airtaxi.models.example_model.processData(parsed_data,acAgents,portAgents,operator)
+    results = airtaxi.models.SoS12.processData(parsed_data,acAgents,portAgents,operator,runNum);
 end

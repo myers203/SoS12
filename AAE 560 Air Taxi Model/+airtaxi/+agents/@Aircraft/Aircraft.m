@@ -10,7 +10,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         % --- Ops properties ---
         operation_mode      
         current_port
-        num_ports
         
         % --- Dynamics properties ---
         location            % Current location
@@ -30,6 +29,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         destination
         
         % --- Dynamics ---
+        visibility
+        skill
         dir_vect
         dir_vect_next
         climb_rate
@@ -48,7 +49,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
     end
     
     methods
-        function obj = Aircraft(num_ports)
+        function obj = Aircraft()
             obj = obj@airtaxi.agents.Agent();
             obj@publicsim.agents.base.Movable();
             % --- Operaional ---
@@ -62,26 +63,21 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                                           %          'crash-nonfatal'
             
             obj.color = 'b';
-
-            % Options: 'human','full-auto'
-            obj.pilot_type = 'human'; 
-%             obj.pilot_type = 'full-auto'; 
+            obj.pilot_type = []; 
             
             obj.customer_responses  = {};
             obj.destination         = struct();
             
             obj.customers_served_count = 0;
-            
-            obj.num_ports           = num_ports;
-            obj.routes_served_count = zeros(num_ports);
-            obj.arrival_threshold   = 2;
+
+            obj.arrival_threshold   = 3.2;
             
             % --- Movement ---
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
-            obj.cruise_speed       = 170/...          % [mph]
+            obj.cruise_speed       = 270/...          % [km/hr]
                 obj.convert.unit('hr2min'); %[mi/min]
             
             % only account for acft < XXX nmi away
@@ -261,10 +257,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         function midAirCollision(obj,s_rel)
             p = 1/(1+exp(5.5-.075*s_rel));
             if p>.4
-                obj.parent.logFatalCrash();
+                obj.parent.logFatalCrash(obj.pilot_type);
 %                 obj.setOperationMode('crash-fatal');
             else
-                obj.parent.logNonFatalCrash();
+                obj.parent.logNonFatalCrash(obj.pilot_type);
 %                 obj.setOperationMode('crash-nonfatal')
             end
             
@@ -381,6 +377,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function scheduleNextDT(obj,time)
             obj.scheduleAtTime(time+1); % TODO Is time+1 correct?
+        end
+        
+        function setVisibility(obj,vis)
+            obj.visibility = vis;
+        end
+        
+        function setSkill(obj,skill) 
+            obj.skill = skill;
         end
         
         function team_id = getTeamID(obj)
