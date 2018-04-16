@@ -272,6 +272,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             destination = obj.nav_dest;
             id = obj.ac_id;
             table(id,destination,crash_location)
+            v = obj.location;
+            plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);          
             obj.operation_mode = 'idle';
             obj.location = obj.nav_dest;
             obj.speed = 0;
