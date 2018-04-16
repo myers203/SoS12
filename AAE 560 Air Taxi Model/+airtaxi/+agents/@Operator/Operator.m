@@ -1,14 +1,13 @@
 classdef Operator < publicsim.agents.hierarchical.Parent
     % The airline operator
     properties 
-        team_id         
-        team_name       
         aircraft_fleet
         serviced_ports
-        budget
         totaled_aircraft
-        fatal_crashes
-        nonfatal_crashes
+        fatal_crashes_human
+        fatal_crashes_auto
+        nonfatal_crashes_human
+        nonfatal_crashes_auto
         
         trip_pricing
         dist_bw_ports
@@ -20,6 +19,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         num_tot_acft
         takeoff_clearance   
         landing_clearance
+        separation_distance
         vectors_bw_acft
         rel_speed_bw_acft
         dist_bw_acft
@@ -34,20 +34,26 @@ classdef Operator < publicsim.agents.hierarchical.Parent
     end
     
     methods
-        function obj = Operator(op_info)
+        function obj = Operator()
             obj = obj@publicsim.agents.hierarchical.Parent();
             obj.team_id      = op_info{1};
             obj.team_name    = op_info{2};
             obj.takeoff_clearance = 9;      % in nmi
             obj.landing_clearance = 6;
             obj.danger_threshold = 100/6076.12;
+            obj.takeoff_clearance   = 0;
+            obj.separation_distance = 0;
+            obj.separation_distance = 0;
+
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
             
             obj.totaled_aircraft = {};
             obj.num_tot_acft = 0;
-            obj.fatal_crashes = 0;
-            obj.nonfatal_crashes = 0;
+            obj.fatal_crashes_human = 0;
+            obj.fatal_crashes_auto = 0;
+            obj.nonfatal_crashes_human = 0;
+            obj.nonfatal_crashes_auto = 0;
             
             obj.dist_bw_ports = []; 
             obj.vectors_bw_acft = {};
@@ -302,7 +308,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function data = getDatalinkData(obj,acft)
             data = obj.datalink_buffer{1};
-            data = data{acft.ac_id,:};
+            data = data(:,acft.ac_id);
         end
 
         function setPickupArrival(obj,port_id,ac_id)
@@ -318,6 +324,22 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         function setAircraft(obj,acft)
             obj.aircraft_fleet = acft;
             obj.num_aircraft   = length(acft);
+        end
+
+        function setTakeoffClearance(obj,clearance)
+            obj.takeoff_clearance   = clearance;
+        end
+        
+        function setLandingClearance(obj,clearance)
+            obj.landing_clearance   = clearance;
+        end
+        
+        function setSeparationDistance(obj,dist)
+            obj.separation_distance = dist;
+        end
+        
+        function setNetDelay(obj,delay)
+            obj.datalink_buf_len = delay;
         end
         
         function port_id = findNearbyPort(obj,ac_location)
@@ -362,6 +384,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
+<<<<<<< HEAD
 
             flag_crashed = zeros(1,obj.num_aircraft);
             for i=1:obj.num_aircraft
@@ -370,34 +393,64 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                             {'onTrip', 'enroute2pickup'}))&&...
                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
+%             flag_crashed = zeros(1,obj.num_aircraft);
+%             for i=1:obj.num_aircraft
+%                 for j=1:obj.num_aircraft
+%                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))&&...
+%                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))
+% 
+%                         s_rel = obj.rel_speed_bw_acft{i,j};
+%                         %will need to model pdf for inside of EASA's
+%                         %clearance parameter
+%                         if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
+%                             %all aircraft involved collide
+%                             flag_crashed(i) = 1;
+%                             flag_crashed(j) = 1;
+%                         end
+%                     end
+%                 end
+%             end
+%             
+%             % reset all crashed aircraft
+%             for i=1:obj.num_aircraft
+%                 if flag_crashed(i)
+%                     % force collision to destroy
+%                     obj.aircraft_fleet{i}.midAirCollision(s_rel);
+%                 end
+%             end
+>>>>>>> master
 
-                        s_rel = obj.rel_speed_bw_acft{i,j};
-                        %will need to model pdf for inside of EASA's
-                        %clearance parameter
-                        if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
-                            %all aircraft involved collide
-                            flag_crashed(i) = 1;
-                            flag_crashed(j) = 1;
-                        end
-                    end
-                end
-            end
+            check = cell2mat(obj.dist_bw_acft);
+            A = tril(check,-1); %use only the lower triangular matrix not including the diagonal term
             
-            % reset all crashed aircraft
-            for i=1:obj.num_aircraft
-                if flag_crashed(i)
-                    % force collision to destroy
-                    obj.aircraft_fleet{i}.midAirCollision(s_rel);
+            row = 2; %row count
+            for col = 1:length(A) - 1
+                while(row < length(A)+1)
+                    if(A(row,col) <= 100/6076.12) 
+                        obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row});
+                    end
+                    row = row + 1; 
                 end
+                row = col + 2;
             end
         end
         
-        function logFatalCrash(obj)
-            obj.fatal_crashes = obj.fatal_crashes+1;
+        function logFatalCrash(obj,mode)
+            if strcmp(mode,'human')
+                obj.fatal_crashes_human = obj.fatal_crashes_human+1;
+            else
+                obj.fatal_crashes_auto = obj.fatal_crashes_auto+1;
+            end
         end
         
-        function logNonFatalCrash(obj)
-            obj.nonfatal_crashes = obj.nonfatal_crashes+1;
+        function logNonFatalCrash(obj,mode)
+            if strcmp(mode,'human')
+                obj.nonfatal_crashes_human = obj.nonfatal_crashes_human+1;
+            else
+                obj.nonfatal_crashes_auto = obj.nonfatal_crashes_auto+1;
+            end
         end
 
         function calcAircraftDynamicData(obj)
