@@ -10,13 +10,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         % --- Ops properties ---
         operation_mode      
         current_port
-<<<<<<< HEAD
         num_ports
         holding_time
         nav_dest
         waiting_time
-=======
->>>>>>> master
         
         % --- Dynamics properties ---
         location            % Current location
@@ -70,32 +67,26 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                                           %          'crash-nonfatal'
             
             obj.color = 'b';
-<<<<<<< HEAD
 
             % Options: 'human','full-auto'
             obj.pilot_type = 'human'; 
 %             obj.pilot_type = 'full-auto'; 
           
-=======
             obj.pilot_type = []; 
             
->>>>>>> master
             obj.customer_responses  = {};
             obj.destination         = struct();
             
             obj.customers_served_count = 0;
-<<<<<<< HEAD
             
             obj.num_ports           = num_ports;
             obj.routes_served_count = zeros(num_ports);
             obj.arrival_threshold   = 6;
             obj.holding_time = 0;
             obj.waiting_time = 0;
-=======
 
             obj.arrival_threshold   = 3.2;
             
->>>>>>> master
             % --- Movement ---
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
@@ -285,17 +276,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         function midAirCollision(obj,s_rel)
             p = 1/(1+exp(5.5-.075*s_rel));
             if p>.4
-<<<<<<< HEAD
                 obj.parent.logFatalCrash();
             else
                 obj.parent.logNonFatalCrash();
-=======
                 obj.parent.logFatalCrash(obj.pilot_type);
 %                 obj.setOperationMode('crash-fatal');
             else
                 obj.parent.logNonFatalCrash(obj.pilot_type);
 %                 obj.setOperationMode('crash-nonfatal')
->>>>>>> master
             end
             crash_location=obj.location;
             destination = obj.nav_dest;
