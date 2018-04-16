@@ -92,7 +92,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
-            obj.cruise_speed       = 170/...          % [mph]
             obj.cruise_speed       = 270/...          % [km/hr]
                 obj.convert.unit('hr2min'); %[mi/min]
             
