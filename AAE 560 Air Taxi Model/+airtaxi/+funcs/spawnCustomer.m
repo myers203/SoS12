@@ -1,4 +1,4 @@
-function check = spawnCustomer(port_id,simTime,current_customers,max_customers)
+function check = spawnCustomer(simTime,port)
 	% The customer demand at each port is defined by this function
 	
 	% Currently, a simple random demand generator is used to spaw customers
@@ -9,7 +9,7 @@ function check = spawnCustomer(port_id,simTime,current_customers,max_customers)
 		return
 	end
 	
-	if rand() > 0.7 + length(current_customers)*0.3/max_customers
+	if rand() > 0.7 + length(port.current_customers)*0.3/port.max_customers
 		check = true;
 	end
 end

@@ -1,4 +1,4 @@
-function processData(parsed_data,acAgents,portAgents,operator)
+function results = processData(parsed_data,acAgents,portAgents,operator,runNum)
     ac_data = parsed_data.ac_data;
 %     port_data = parsed_data.port_data;
 %     ac_colors = {'r','b','g','k','c','y'};
@@ -7,11 +7,11 @@ function processData(parsed_data,acAgents,portAgents,operator)
 %     for ii=1:length(portAgents)
 %         plotCustomerData(port_data,ii);
 %     end
-    plotACModes(ac_data,operator);
+    results = plotACModes(ac_data,operator,runNum);
 %     plotACEcon(ac_data,acAgents,ac_colors);
 end
 
-function plotACModes(ac_data,operator)
+function results = plotACModes(ac_data,operator,runNum)
 %     ac_modes = {'idle','enroute2pickup','onTrip','crash-fatal','crash-nonfatal'};
 %     modes_val = [1,2,3,4,5];
 %     modes_ref = containers.Map(ac_modes,modes_val);
@@ -29,15 +29,25 @@ function plotACModes(ac_data,operator)
        flight_time_onT(ii,:) = strcmp(ac_data{ii}.modes,'onTrip');
     end
 %     fatalities = sum(max(fatal_matrix'));
-    fatalities = operator.fatal_crashes;
+    fatalities_human = operator.fatal_crashes_human;
+    fatalities_auto = operator.fatal_crashes_auto;
 %     non_fatalities = sum(max(nonfatal_matrix'));
-    non_fatalities = operator.nonfatal_crashes;
+    non_fatalities_human = operator.nonfatal_crashes_human;
+    non_fatalities_auto = operator.nonfatal_crashes_auto;
+    
+    % TODO: update this 
+    vertiport_caused = 0;
+    
+    avg_dist_bw_ports = mean(mean(operator.calcDistBetweenPorts));
+    
+    tot_flight_time_er2p = sum(sum(flight_time_er2p));
+    tot_flight_time_onT  = sum(sum(flight_time_onT)); 
     % whole time in the air for the entire fleet in hours
-    flight_time_total = (sum(sum(flight_time_er2p))+...
-        sum(sum(flight_time_onT)))/60;
-     %performance metric
-    f_rate = fatalities*1e5/(flight_time_total); 
-    nonf_rate = non_fatalities*1e5/(flight_time_total);
+    flight_time_total = (tot_flight_time_er2p +...
+        tot_flight_time_onT)/60;
+    % performance metric
+    f_rate = (fatalities_human+fatalities_auto)*1e5/(flight_time_total); 
+    nonf_rate = (non_fatalities_human+non_fatalities_auto)*1e5/(flight_time_total);
    % performance metric in incidents per flight hour...hope to make this 
    % per 100,000 flight hours
    figure(2)
@@ -46,6 +56,10 @@ function plotACModes(ac_data,operator)
    ylabel('Incidents per 100,000 Flight Hours')
    title('Collision Data')
    
+   results = {runNum, fatalities_human, fatalities_auto, ...
+       non_fatalities_human, non_fatalities_auto, ...
+       tot_flight_time_onT, tot_flight_time_er2p, ...
+       vertiport_caused, avg_dist_bw_ports};
 end
 
 % function plotCustomerData(port_data,id)

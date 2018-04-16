@@ -18,6 +18,7 @@ classdef Convert
                 case 'm2mi',    val = 0.00062137;    % convert from meters to miles
                 case 'm2deg',   val = 8.99327e-6;    % convert from meters to degree lat long
                 case 'deg2m',   val = 1.11194e05;    % convert from degree lat long to meters
+                case 'mi2km',   val = 1.60934;       % convert from miles to kilometers
                 
                 % Speed
                 case 'kts2mps', val = 0.51444444;    % convert from knots to m/s
