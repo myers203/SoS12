@@ -6,11 +6,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         ac_id               % Numerical reference for the AC
         pilot_type
         cruise_speed        % Cruise speed
-        
+        nav_dest        
         % --- Ops properties ---
         operation_mode      
         current_port
-        
+        holding_time
+        waiting_time
         % --- Dynamics properties ---
         location            % Current location
         speed               % Current speed
@@ -37,7 +38,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         cruise_altitude
         max_turn_rate       
         arrival_threshold
-        nav_dest
+
         nav_dist_thresh 
         visual_range
         
