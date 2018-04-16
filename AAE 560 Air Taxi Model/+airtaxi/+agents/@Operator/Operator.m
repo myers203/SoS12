@@ -204,28 +204,48 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                        ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait2pickup')...
                        && strcmp(acft.operation_mode, 'wait4trip')...
                        ||strcmp(acft.operation_mode, 'wait2pickup')
-                       if max(waiting_times)==0 %assign a new waiting time for all at the port
-                            for j = 1:length(ids)
+                        if sum(waiting_times)==0 % if this is everyone's first time
+                            %in the queue, then we assign a wait-time round
+                            %robin style
+                             for j = 1:length(ids)
                                 obj.aircraft_fleet{ids(j)}.waiting_time =...
-                                    obj.aircraft_fleet{ids(j)}.waiting_time-j;                   
-                            end
-                            
-                            waiting_times = obj.getWaitingTimes(ids);
+                                    obj.aircraft_fleet{ids(j)}.waiting_time+j;                   
+                             end
+                             %then check the vehicle of interest's
+                             %clearance
                             if acft.waiting_time<max(waiting_times)
                                 check2=false;
                                 break;
                             end
-                       elseif acft.waiting_time<max(waiting_times) 
+                        elseif acft.waiting_time==0 %the case that the ac 
+                            %just landed
+                            acft.waiting_time= acft.waiting_time+1;
+                                check2=false;
+                                break;                            
+                       elseif acft.waiting_time<max(waiting_times) %the case 
+                           %that the ac has already been waiting but is not
+                           %next in line
+                           acft.waiting_time= acft.waiting_time+1;
                            check2 = false;
                            break;
-                       elseif sum(waiting_times==max(waiting_times))>=2
-                            %reset the waiting times
-                            %which will cause the loop to go back to the
-                            %beginning if-statement for this port on the
-                            %next run
-                            obj.resetWaitingTimes(ids);
+                       elseif sum(waiting_times==max(waiting_times))>1&&...
+                               acft.waiting_time==max(waiting_times)%the case
+                           %that it's not everyone's first time in line and
+                           %there is a tie between the ac and another ac to
+                           %go next
+                           max_ids = find(waiting_times==max(waiting_times))
+                           max_ids = ids(max_ids);
+                           %break the tie
+                           for j=1:length(max_ids)
+                                obj.aircraft_fleet{max_ids(j)}.waiting_time =...
+                                    obj.aircraft_fleet{max_ids(j)}.waiting_time+j;                                     
+                           end
+                           %get the new waiting times and check again
+                           waiting_times = obj.getWaitingTimes(max_ids);
+                           if acft.waiting_time<max(waiting_times)
                             check2 = false;
                            break;
+                           end
                        end
                end  
 
