@@ -175,11 +175,11 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function check = getClearance(obj,acft)
             vects = obj.vectors2Aircraft(acft);
-            check = true;
+            check1 = true;
             for i=1:size(vects,1)
                 if norm(vects{i,:}) < obj.takeoff_clearance
-                    check = false;
-                    return;
+                    check1 = false;
+                    break;
                 end
             end
             check2 = true;
@@ -191,13 +191,14 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
            ids = find(acft.current_port==cur_ports);
            if ~isempty(ids)
-            for i=1:length(ids)
+            for i=1:length(ids)%might not need this anymore...plus an end is missing
                 waiting_times = obj.getWaitingTimes(ids);
                if (strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'onTrip')...
                        ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'enroute2pickup'))...
                        && (strcmp(acft.operation_mode, 'wait4trip')...
                        ||strcmp(acft.operation_mode, 'wait2pickup')...
                        &&sum(acft.location(1:2)==obj.aircraft_fleet{ids(i)}.location(1:2))==2)
+                   acft.waiting_time= acft.waiting_time+1;                   
                    check2 = false;
                    break;
                elseif strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait4trip')...
@@ -233,8 +234,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                            %that it's not everyone's first time in line and
                            %there is a tie between the ac and another ac to
                            %go next
-                           max_ids = find(waiting_times==max(waiting_times))
-                           max_ids = ids(max_ids);
+                           max_ids = ids(waiting_times==max(waiting_times));
                            %break the tie
                            for j=1:length(max_ids)
                                 obj.aircraft_fleet{max_ids(j)}.waiting_time =...
@@ -251,6 +251,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
 
             end                   
            end
+           check = check1==check2;
+        end
+           
         
         function resetWaitingTimes(obj,ids)
             for j = 1:length(ids)
