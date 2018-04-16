@@ -25,17 +25,7 @@ function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator,
         portAgents{ii}.setLocation(loc);
         portAgents{ii}.port_id = port_ids(ii);
     end
-   
-%     %Setting number of aircraft to be the same as available landing zones
-%     %in case of user error.
-%     if n_aircraft>sum(n_start_zones)
-%         fprintf(2,['WARNING: The number of aircraft exceeds '...
-%             'available landing zones.\n'...
-%             'Setting fleet to be equal to number of landing zones...'])
-%         n_aircraft = sum(n_start_zones);
-%         acAgents = acAgents([1:n_aircraft]);
-%     end
-    
+
     for ii=1:n_aircraft
         if ii <= numHumanAcft
             acAgents{ii}.pilot_type = 'human';
@@ -51,8 +41,8 @@ function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator,
     
     n_aircraft_loop = n_aircraft;
     count = 1;
-    %this loop structure will take ANY combination of number of ports,
-    %number of landing zones, and number of aircraft.
+    %this loop structure will take any combination of number of ports,
+    % and number of aircraft.
     while n_aircraft_loop>0
         for ii=1:n_ports
             start_port = ii;
