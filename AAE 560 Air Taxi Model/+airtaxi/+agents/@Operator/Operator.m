@@ -452,35 +452,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-%         function reshapeFleet(obj, acft)
-%         %function that builds a new aircraft and assigns it to
-%         %the fleet and a start port after a crash.
-%             % Set up Aircraft agents
-%          ac = airtaxi.agents.Aircraft(obj.num_ports);
-%          obj.addChild(ac);
-%          id = obj.num_aircraft+1;
-%             for i = 1:obj.num_ports
-%                 port = obj.serviced_ports{i};
-%                 if port.free_cust_slots ~=0
-%                     ac.location = port.location;
-%                     ac.current_port = port;
-%                     break;
-%                 end
-%             end
-%             ac.ac_id = id;
-%             ac.type = acft.type;
-%             ac.pilot_type = acft.pilot_type;
-%             ac.num_seats = acft.num_seats;
-%             ac.cruise_speed = acft.cruise_speed;
-%             ac.range = acft.range;
-%             ac.operation_mode = 'idle';
-%             obj.aircraft_fleet{id} = ac;
-%             obj.aircraft_fleet{id}.init();
-%             obj.totaled_aircraft{end+1} = acft;
-%             obj.num_aircraft = obj.num_aircraft+1;
-%             obj.num_tot_acft = obj.num_tot_acft+1;
-%         end
-        
      end
     
     methods(Access = private)
