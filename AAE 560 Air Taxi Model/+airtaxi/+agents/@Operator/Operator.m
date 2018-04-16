@@ -19,9 +19,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         num_tot_acft
         takeoff_clearance   
         landing_clearance
-
         separation_distance
-
         vectors_bw_acft
         rel_speed_bw_acft
         dist_bw_acft
@@ -38,15 +36,14 @@ classdef Operator < publicsim.agents.hierarchical.Parent
     methods
         function obj = Operator()
             obj = obj@publicsim.agents.hierarchical.Parent();
-
+            obj.team_id      = op_info{1};
+            obj.team_name    = op_info{2};
             obj.takeoff_clearance = 9;      % in nmi
             obj.landing_clearance = 6;
             obj.danger_threshold = 100/6076.12;
-
             obj.takeoff_clearance   = 0;
             obj.separation_distance = 0;
             obj.separation_distance = 0;
-
 
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
@@ -387,7 +384,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
-
+<<<<<<< HEAD
 
             flag_crashed = zeros(1,obj.num_aircraft);
             for i=1:obj.num_aircraft
@@ -396,6 +393,34 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                             {'onTrip', 'enroute2pickup'}))&&...
                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
+%             flag_crashed = zeros(1,obj.num_aircraft);
+%             for i=1:obj.num_aircraft
+%                 for j=1:obj.num_aircraft
+%                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))&&...
+%                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+%                             {'onTrip', 'enroute2pickup'}))
+% 
+%                         s_rel = obj.rel_speed_bw_acft{i,j};
+%                         %will need to model pdf for inside of EASA's
+%                         %clearance parameter
+%                         if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
+%                             %all aircraft involved collide
+%                             flag_crashed(i) = 1;
+%                             flag_crashed(j) = 1;
+%                         end
+%                     end
+%                 end
+%             end
+%             
+%             % reset all crashed aircraft
+%             for i=1:obj.num_aircraft
+%                 if flag_crashed(i)
+%                     % force collision to destroy
+%                     obj.aircraft_fleet{i}.midAirCollision(s_rel);
+%                 end
+%             end
+>>>>>>> master
 
             check = cell2mat(obj.dist_bw_acft);
             A = tril(check,-1); %use only the lower triangular matrix not including the diagonal term
@@ -409,9 +434,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     row = row + 1; 
                 end
                 row = col + 2;
-            end
-                    end
-                end
             end
         end
         
@@ -482,6 +504,35 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 end
             end
         end
+        
+%         function reshapeFleet(obj, acft)
+%         %function that builds a new aircraft and assigns it to
+%         %the fleet and a start port after a crash.
+%             % Set up Aircraft agents
+%          ac = airtaxi.agents.Aircraft(obj.num_ports);
+%          obj.addChild(ac);
+%          id = obj.num_aircraft+1;
+%             for i = 1:obj.num_ports
+%                 port = obj.serviced_ports{i};
+%                 if port.free_cust_slots ~=0
+%                     ac.location = port.location;
+%                     ac.current_port = port;
+%                     break;
+%                 end
+%             end
+%             ac.ac_id = id;
+%             ac.type = acft.type;
+%             ac.pilot_type = acft.pilot_type;
+%             ac.num_seats = acft.num_seats;
+%             ac.cruise_speed = acft.cruise_speed;
+%             ac.range = acft.range;
+%             ac.operation_mode = 'idle';
+%             obj.aircraft_fleet{id} = ac;
+%             obj.aircraft_fleet{id}.init();
+%             obj.totaled_aircraft{end+1} = acft;
+%             obj.num_aircraft = obj.num_aircraft+1;
+%             obj.num_tot_acft = obj.num_tot_acft+1;
+%         end
         
      end
     
