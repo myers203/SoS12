@@ -35,8 +35,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
     methods
         function obj = Operator()
             obj = obj@publicsim.agents.hierarchical.Parent();
-            obj.takeoff_clearance   = 0;
-            obj.separation_distance = 0;
+            obj.takeoff_clearance   = 9;
+            obj.landing_clearance = 6;
             obj.separation_distance = 0;
 
             obj.useSingleNetwork = false;
@@ -182,8 +182,115 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     return;
                 end
             end
+            check2 = true;
+            %this loop checks for vehicles that might takeoff
+            %simultaneously at the same vertiport
+            cur_ports = 1:obj.num_aircraft;
+            for i=1:size(vects,1)
+                cur_ports(i) = obj.aircraft_fleet{i}.current_port;    
+            end
+           ids = find(acft.current_port==cur_ports);
+           if ~isempty(ids)
+            for i=1:length(ids)
+                waiting_times = obj.getWaitingTimes(ids);
+               if (strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'onTrip')...
+                       ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'enroute2pickup'))...
+                       && (strcmp(acft.operation_mode, 'wait4trip')...
+                       ||strcmp(acft.operation_mode, 'wait2pickup')...
+                       &&sum(acft.location(1:2)==obj.aircraft_fleet{ids(i)}.location(1:2))==2)
+                   check2 = false;
+                   break;
+               elseif strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait4trip')...
+                       ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait2pickup')...
+                       && strcmp(acft.operation_mode, 'wait4trip')...
+                       ||strcmp(acft.operation_mode, 'wait2pickup')
+                       if max(waiting_times)==0 %assign a new waiting time for all at the port
+                            for j = 1:length(ids)
+                                obj.aircraft_fleet{ids(j)}.waiting_time =...
+                                    obj.aircraft_fleet{ids(j)}.waiting_time-j;                   
+                            end
+                            
+                            waiting_times = obj.getWaitingTimes(ids);
+                            if acft.waiting_time<max(waiting_times)
+                                check2=false;
+                                break;
+                            end
+                       elseif acft.waiting_time<max(waiting_times) 
+                           check2 = false;
+                           break;
+                       elseif sum(waiting_times==max(waiting_times))>=2
+                            %reset the waiting times
+                            %which will cause the loop to go back to the
+                            %beginning if-statement for this port on the
+                            %next run
+                            obj.resetWaitingTimes(ids);
+                            check2 = false;
+                           break;
+                       end
+               end  
+
+            end                   
+           end
+        
+        function resetWaitingTimes(obj,ids)
+            for j = 1:length(ids)
+                obj.aircraft_fleet{ids(j)}.waiting_time=0;
+            end
         end
         
+        function w = getWaitingTimes(obj,ids)
+            w = zeros(length(ids),1);
+            for j = 1:length(ids)
+                w(j) = obj.aircraft_fleet{ids(j)}.waiting_time;                   
+            end
+        end
+        
+        function check = getLandingClearance(obj,acft)
+            ids = zeros(obj.num_aircraft,1);
+            d = obj.getAircraftDist2Port(acft);
+            check = true;
+            ids = find(d<obj.landing_clearance);
+                if ~isempty(ids)&&sum(ids==acft.ac_id)==1
+                holding_times = zeros(length(ids),1);
+                for j = 1:length(ids)
+                    holding_times(j) = obj.aircraft_fleet{ids(j)}.holding_time;                   
+                end
+                    if acft.holding_time==0 %first time in the queue
+                        check = false;
+                        return;
+                    elseif acft.holding_time>0  
+                        for k = 1:length(ids)
+                            %Break the tie with min id
+                            if  acft.holding_time==max(holding_times)&&...
+                                sum(holding_times==max(holding_times))>1&&...
+                                acft.ac_id==min(ids)
+                                check = true;
+                                return;
+                                %let it go if it has the longest holding
+                                %time
+                            elseif acft.holding_time==max(holding_times)...
+                                &&sum(holding_times==max(holding_times))==1
+                                check = true;
+                                return;
+                            elseif acft.holding_time<max(holding_times)%check is false if ac not first one there
+                                check = false;
+                                return;
+                            end
+                        end
+                    end
+                end
+            end
+        
+        function d = getAircraftDist2Port(obj,acft)
+            l = zeros(length(obj.num_aircraft),3);
+            d = 1:length(l);
+            for i = 1:obj.num_aircraft
+               l(i,:) = obj.aircraft_fleet{i}.location;
+               d(i) = norm(acft.nav_dest - l(i,:));
+            end
+        end
+   
+                
         function bufferDatalinkData(obj)
             obj.datalink_buffer = obj.datalink_buffer(2:end);
             obj.datalink_buffer{end+1} = obj.vectors_bw_acft;
@@ -412,7 +519,5 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
      end
     
-    methods(Access = private)
 
-    end
 end
