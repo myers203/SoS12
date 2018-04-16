@@ -214,12 +214,13 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                              end
                              %then check the vehicle of interest's
                              %clearance
+                            waiting_times = obj.getWaitingTimes(ids);                           
                             if acft.waiting_time<max(waiting_times)
                                 check2=false;
                                 break;
                             end
                         elseif acft.waiting_time==0 %the case that the ac 
-                            %just landed
+                            %just landed and others are already waiting
                             acft.waiting_time= acft.waiting_time+1;
                                 check2=false;
                                 break;                            
@@ -235,17 +236,16 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                            %there is a tie between the ac and another ac to
                            %go next
                            max_ids = ids(waiting_times==max(waiting_times));
-                           %break the tie
+                           %break the tie by updating the other acs waiting
+                           %times and let this ac go
                            for j=1:length(max_ids)
+                               if max_ids(j)~=acft.ac_id
                                 obj.aircraft_fleet{max_ids(j)}.waiting_time =...
-                                    obj.aircraft_fleet{max_ids(j)}.waiting_time+j;                                     
+                                    obj.aircraft_fleet{max_ids(j)}.waiting_time+j; 
+                               end
                            end
-                           %get the new waiting times and check again
-                           waiting_times = obj.getWaitingTimes(max_ids);
-                           if acft.waiting_time<max(waiting_times)
-                            check2 = false;
+                           %check2 = true;
                            break;
-                           end
                        end
                end  
 
