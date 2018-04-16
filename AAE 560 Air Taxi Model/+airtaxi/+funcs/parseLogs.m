@@ -4,7 +4,7 @@ function parsedData = parseLogs(logPath,acAgents,portAgents,duration)
     parsedData = struct();
     
     % Aircraft Data Parsing
-    aircraftData = publicsim.sim.Loggable.readParamsByClass(logger,'airtaxi.agents.Aircraft',{'getOperationMode','operating_costs','revenue','getMarketServed'});
+    aircraftData = publicsim.sim.Loggable.readParamsByClass(logger,'airtaxi.agents.Aircraft',{'getOperationMode'});
     portData     = publicsim.sim.Loggable.readParamsByClass(logger,'airtaxi.agents.Port',{'getCustomerData'});
 
     ac_data    = parseAircraftData(aircraftData,acAgents,duration);
@@ -31,7 +31,7 @@ function port_data = parsePortData(unparsed_port_data,portAgents,duration)
         end
         data_temp.customer_count   = [allCustomers(ref:ref+duration).total_count];
         data_temp.served_customers = [allCustomers(ref:ref+duration).served_count];
-        data_temp.trip_demand      = [allCustomers(ref:ref+duration).trip_demand];
+        data_temp.dest_id          = [allCustomers(ref:ref+duration).dest_id];
         
         data_temp.times = allTimes(ref:ref+duration);
         port_data{port_count} = data_temp;
@@ -41,17 +41,10 @@ end
 
 function ac_data = parseAircraftData(unparsed_ac_data,acAgents,duration)
     modeData = [unparsed_ac_data.getOperationMode];
-    operatingCostData = [unparsed_ac_data.operating_costs];
-    revenueData = [unparsed_ac_data.revenue];
-    marketServedData = [unparsed_ac_data.getMarketServed];
     
     allModes = {modeData.value};
     allIds   = [modeData.id];
     allTimes = [modeData.time];
-    
-    allCosts = [operatingCostData.value];
-    allRevenues = [revenueData.value];
-    allMarketServed = [marketServedData.value];
     
     ac_data = cell(size(acAgents));
     ac_count = 1;
@@ -62,15 +55,8 @@ function ac_data = parseAircraftData(unparsed_ac_data,acAgents,duration)
             keyboard
         end
         data_temp.modes = allModes(ref:ref+duration);
-        data_temp.operating_costs = allCosts(ref:ref+duration);
-        data_temp.revenue = allRevenues(ref:ref+duration);
-        data_temp.market_served = allMarketServed(ref:ref+duration);
         data_temp.times = allTimes(ref:ref+duration);
         ac_data{ac_count} = data_temp;
         ac_count = ac_count+1;
     end
-    
-    
-    
-    
 end

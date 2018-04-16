@@ -56,6 +56,7 @@ classdef Plotter < handle
             fig.Units = 'inches';
             fig.Position(3) = 10;
             fig.Position(4) = 7;
+            axis equal;
             movegui(fig,'center')
 %             xlabel('X [nMi]');ylabel('Y [nMi]')
         
@@ -84,20 +85,6 @@ classdef Plotter < handle
                 plot(loc(1),loc(2),'Marker',port_marker.type,'MarkerSize',port_marker.size,...
                     'MarkerEdgeColor',port_marker.edgeColor,'MarkerFaceColor',port_marker.faceColor);
                 text(loc(1),loc(2),num2str(ii),'Color',[1 1 1]);
-                
-                % Plot charger assets
-                charger_keys = keys(portAgents{ii}.chargers);
-                for jj=1:length(charger_keys)
-                    c_loc = loc(1:2) - [0,1.5] + (jj-1)*[0.5 0];
-                    team = charger_keys{jj};
-                    plot(c_loc(1),c_loc(2),'Marker','^','MarkerSize',7,'MarkerEdgeColor','k','MarkerFaceColor',ac_color(team));
-                    charger = portAgents{ii}.chargers(jj);
-                    if strcmp(charger.charger_type,'Fast')
-                        text(c_loc(1)-0.3,c_loc(2),'F', 'Color', [1 1 1],'FontSize',7);
-                    elseif strcmp(charger.charger_type,'Slow')
-                        text(c_loc(1)-0.3,c_loc(2),'S', 'Color', [1 1 1],'FontSize',7);
-                    end
-                end
             end
             
             % Set color for AC plot
@@ -105,7 +92,8 @@ classdef Plotter < handle
             ac_marker.size = 9;
             ac_marker.edgeColor = 'k';
             for ii=1:nAC
-                ac_marker.faceColor = ac_color(acAgents{ii}.parent.team_id);
+%                 ac_marker.faceColor = ac_color(acAgents{ii}.parent.team_id);
+                ac_marker.faceColor = acAgents{ii}.getColor;
                 ac_marker.id_text   = ['AC',num2str(acAgents{ii}.ac_id)];
                 plotter = airtaxi.funcs.plots.Plotter(ac_marker);
                 acAgents{ii}.setPlotter(plotter);
