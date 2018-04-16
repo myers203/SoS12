@@ -244,10 +244,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 % Set dir_vect to new vector
                 obj.dir_vect = obj.dir_vect_next;
                 
-                % Check for collision with other aircraft.  Since air
-                % collisions come in pairs, this must be handled at the
-                % fleet (operator) level and is called here.
-                %obj.parent.checkForCollision(obj);
 
             end
 			
