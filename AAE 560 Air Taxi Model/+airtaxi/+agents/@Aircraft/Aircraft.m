@@ -33,8 +33,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         destination
         
         % --- Dynamics ---
-        visibility
-        skill
         dir_vect
         dir_vect_next
         climb_rate
@@ -53,7 +51,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
     end
     
     methods
-        function obj = Aircraft()
+        function obj = Aircraft(num_ports)
             obj = obj@airtaxi.agents.Agent();
             obj@publicsim.agents.base.Movable();
             % --- Operaional ---
@@ -72,8 +70,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.pilot_type = 'human'; 
 %             obj.pilot_type = 'full-auto'; 
           
-            obj.pilot_type = []; 
-            
             obj.customer_responses  = {};
             obj.destination         = struct();
             
@@ -84,16 +80,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.arrival_threshold   = 6;
             obj.holding_time = 0;
             obj.waiting_time = 0;
-
-            obj.arrival_threshold   = 3.2;
-            
             % --- Movement ---
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
             obj.cruise_speed       = 170/...          % [mph]
-            obj.cruise_speed       = 270/...          % [km/hr]
                 obj.convert.unit('hr2min'); %[mi/min]
             
             % only account for acft < XXX nmi away
@@ -280,11 +272,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 obj.parent.logFatalCrash();
             else
                 obj.parent.logNonFatalCrash();
-                obj.parent.logFatalCrash(obj.pilot_type);
-%                 obj.setOperationMode('crash-fatal');
-            else
-                obj.parent.logNonFatalCrash(obj.pilot_type);
-%                 obj.setOperationMode('crash-nonfatal')
             end
             crash_location=obj.location;
             destination = obj.nav_dest;
@@ -403,14 +390,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function scheduleNextDT(obj,time)
             obj.scheduleAtTime(time+1); % TODO Is time+1 correct?
-        end
-        
-        function setVisibility(obj,vis)
-            obj.visibility = vis;
-        end
-        
-        function setSkill(obj,skill) 
-            obj.skill = skill;
         end
         
         function team_id = getTeamID(obj)
