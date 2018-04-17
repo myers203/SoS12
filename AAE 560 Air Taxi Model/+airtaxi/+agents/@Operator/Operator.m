@@ -178,13 +178,22 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         function check = getClearance(obj,acft)
             obj.calcAircraftDynamicData();
             row = acft.ac_id;
-            check = true;
+            check = true;         
             for i=1:obj.num_aircraft
                 if obj.dist_bw_acft{row,i} < obj.takeoff_clearance
                     check = false;
-                    break;
+                    return;
+                elseif (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
+                            {'onTrip', 'enroute2pickup'}))...
+                       && (ismember(acft.getOperationMode, ...
+                            {'wait4trip', 'wait2pickup'}))...
+                       &&sum(acft.location(1)==obj.aircraft_fleet{i}.location(1:2))==2
+                   check = false;
+                   return;    
                 end
             end
+            
+            
         end
            
         
