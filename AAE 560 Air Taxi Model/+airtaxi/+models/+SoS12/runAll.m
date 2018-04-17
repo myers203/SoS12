@@ -4,6 +4,7 @@ function [simRuns] = runAll(~)
     input_file = '+airtaxi/Inputs.xlsx';
     port_file = '+airtaxi/PortLocations.xlsx';
     output_file = '+airtaxi/output.xlsx';
+    speed_scale_factor = 1/10;
 
     % parse run data
     [~,~,runs] = xlsread(input_file,'runs');
@@ -37,11 +38,12 @@ function [simRuns] = runAll(~)
     
     % Check for Parallel Processing
     runParallel = license('test','Distrib_Computing_Toolbox');
-    runParallel = false;
+%     runParallel = false;
     if runParallel
         for i = 1:numRuns
             F(i) = parfeval(@airtaxi.models.SoS12.runModel_new,1, ...
-                input_file,port_file,startRun+i-1,simSeconds);
+                input_file,port_file,startRun+i-1,simSeconds, ...
+                speed_scale_factor);
         end
         
         % Build a waitbar to track progress
@@ -56,7 +58,8 @@ function [simRuns] = runAll(~)
     else
         for i=1:numRuns
             results(i+1,:) = airtaxi.models.SoS12.runModel_new( ...
-                input_file,port_file,startRun+i-1,simSeconds);
+                input_file,port_file,startRun+i-1,simSeconds, ...
+                speed_scale_factor);
         end
     end
     

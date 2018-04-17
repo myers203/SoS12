@@ -1,4 +1,4 @@
-function results = processData(parsed_data,acAgents,portAgents,operator,runNum)
+function results = processData(parsed_data,operator,runNum,speedScaleFactor)
     ac_data = parsed_data.ac_data;
 %     port_data = parsed_data.port_data;
 %     ac_colors = {'r','b','g','k','c','y'};
@@ -7,11 +7,11 @@ function results = processData(parsed_data,acAgents,portAgents,operator,runNum)
 %     for ii=1:length(portAgents)
 %         plotCustomerData(port_data,ii);
 %     end
-    results = plotACModes(ac_data,operator,runNum);
+    results = plotACModes(ac_data,operator,runNum,speedScaleFactor);
 %     plotACEcon(ac_data,acAgents,ac_colors);
 end
 
-function results = plotACModes(ac_data,operator,runNum)
+function results = plotACModes(ac_data,operator,runNum,speedScaleFactor)
 %     ac_modes = {'idle','enroute2pickup','onTrip','crash-fatal','crash-nonfatal'};
 %     modes_val = [1,2,3,4,5];
 %     modes_ref = containers.Map(ac_modes,modes_val);
@@ -40,8 +40,8 @@ function results = plotACModes(ac_data,operator,runNum)
     
     avg_dist_bw_ports = mean(mean(operator.calcDistBetweenPorts));
     
-    tot_flight_time_er2p = sum(sum(flight_time_er2p));
-    tot_flight_time_onT  = sum(sum(flight_time_onT)); 
+    tot_flight_time_er2p = sum(sum(flight_time_er2p))*speedScaleFactor;
+    tot_flight_time_onT  = sum(sum(flight_time_onT))*speedScaleFactor; 
     % whole time in the air for the entire fleet in hours
     flight_time_total = (tot_flight_time_er2p +...
         tot_flight_time_onT)/60;

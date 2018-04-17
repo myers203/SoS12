@@ -1,4 +1,4 @@
-function results = runModel_new(input_file,port_file,runNum,simSeconds)
+function results = runModel_new(input_file,port_file,runNum,simSeconds,speedScaleFactor)
     import publicsim.*;
 %     global globalWeather     
     
@@ -28,7 +28,7 @@ function results = runModel_new(input_file,port_file,runNum,simSeconds)
     % Set up Aircraft agents
     acAgents = cell(1,n_aircraft);
     for i=1:n_aircraft
-        ac = airtaxi.agents.Aircraft();
+        ac = airtaxi.agents.Aircraft(speedScaleFactor);
         acAgents{i} = ac;
         operator.addChild(ac);
     end
@@ -53,5 +53,6 @@ function results = runModel_new(input_file,port_file,runNum,simSeconds)
     parsed_data = airtaxi.funcs.parseLogs(logPath,acAgents,portAgents,duration);
     
     % Postprocessing
-    results = airtaxi.models.SoS12.processData(parsed_data,acAgents,portAgents,operator,runNum);
+    results = airtaxi.models.SoS12.processData(parsed_data,operator, ...
+        runNum,speedScaleFactor);
 end

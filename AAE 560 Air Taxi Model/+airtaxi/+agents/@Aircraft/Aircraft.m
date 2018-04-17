@@ -38,6 +38,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         cruise_altitude
         max_turn_rate       
         arrival_threshold
+        speedScaleFactor
 
         nav_dist_thresh 
         visual_range
@@ -50,7 +51,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
     end
     
     methods
-        function obj = Aircraft()
+        function obj = Aircraft(speed_scale_factor)
             obj = obj@airtaxi.agents.Agent();
             obj@publicsim.agents.base.Movable();
             % --- Operaional ---
@@ -77,9 +78,11 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
-            % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
-            obj.cruise_speed       = 270/...          % [km/hr]
-                obj.convert.unit('hr2min'); %[mi/min]
+            obj.speedScaleFactor   = speed_scale_factor;
+
+%             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
+%             obj.cruise_speed       = 270/...          % [km/hr]
+%                 obj.convert.unit('hr2min'); %[mi/min]
             
             % only account for acft < XXX nmi away
             obj.nav_dist_thresh    = 20; 
@@ -303,7 +306,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         end
         
         function setCruiseSpeed(obj,cruise_speed)
-            obj.cruise_speed = cruise_speed/obj.convert.unit('hr2min');
+            obj.cruise_speed = cruise_speed/obj.convert.unit('hr2min')* ...
+                obj.speedScaleFactor;
         end
         
         function setLocation(obj,loc)
@@ -413,12 +417,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             a = [];
         end
         function v = getVelocity(obj)
-            v = obj.speed;
+            v = obj.speed/obj.speedScaleFactor;
         end
         
         %necessary for finding relative speed of impact
         function v = getRealVelocity(obj)
-            v =  obj.speed.*obj.dir_vect;
+            v =  obj.speed.*obj.dir_vect/obj.speedScaleFactor;
         end
         
         function current_mode = getOperationMode(obj)
