@@ -37,7 +37,7 @@ function [simRuns] = runAll(~)
     
     % Check for Parallel Processing
     runParallel = license('test','Distrib_Computing_Toolbox');
-    
+    runParallel = false;
     if runParallel
         for i = 1:numRuns
             F(i) = parfeval(@airtaxi.models.SoS12.runModel_new,1, ...

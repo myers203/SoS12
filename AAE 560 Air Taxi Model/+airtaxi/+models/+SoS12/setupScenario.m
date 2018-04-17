@@ -1,4 +1,4 @@
-function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator,weather)
+function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator)
     % Currently assumes a single operator
     n_ports     = length(portAgents);
     n_aircraft  = length(acAgents);
@@ -44,7 +44,8 @@ function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator,
         end
 
         acAgents{ii}.ac_id = ii; 
-        acAgents{ii}.setVisibility(params{runNum+1,4});
+        visibility = params{runNum+1,4};
+        acAgents{ii}.setVisibility(visibility);
         acAgents{ii}.setSkill(params{runNum+1,5});
         acAgents{ii}.setCruiseSpeed(params{runNum+1,6});
     end
@@ -75,7 +76,12 @@ function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator,
     bounds = findPlottingBounds(port_locations);
     airtaxi.funcs.plots.Plotter.setup([],acAgents,portAgents,bounds);
     
-    weather.setZone(bounds);
+    % Plot Visibility
+    alpha = 1 * (1-visibility);
+    c = [0 0 1 alpha];
+    pos = [bounds.xLim(1) bounds.yLim(1) ...
+        bounds.xLim(2)-bounds.xLim(1) bounds.yLim(2)-bounds.yLim(1)];
+    rectangle('Position',pos,'FaceColor',c,'EdgeColor',c);
 end
 
 function [port_ids,port_locations] = parsePortInfo(port_info)

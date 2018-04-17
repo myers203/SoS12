@@ -195,7 +195,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function acftRelPos = gatherVisualSA(obj)
             % TODO: add visual SA
-            w = obj.getWeather();
+%             w = obj.getWeather();
             acftRelPos = obj.parent.vectors2Aircraft(obj);
 
             % filter out all aircraft outside of visual range
@@ -206,12 +206,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     del_flag(i) = 1;
                 else  % in normal visual range
                     % now filter out those blocked by weather
-                    vis = 1.0;
-                    for j=1:length(w)
-                        % accumulate all visibility impacts
-                        vis = vis * w{j}.getVisibility(obj.location, ...
-                                obj.location + acftRelPos{i,:});
-                    end
+                    vis = exp((1-obj.visibility)*norm(acftRelPos{i,:}));            
+
+%                     vis = 1.0;
+%                     for j=1:length(w)
+%                         % accumulate all visibility impacts
+%                         vis = vis * w{j}.getVisibility(obj.location, ...
+%                                 obj.location + acftRelPos{i,:});
+%                     end
                     if rand() > vis
                         del_flag(i) = 1;
                     end                            
@@ -273,19 +275,19 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.plotter.updatePlot(obj.location);
         end
         
-        function w = getWeather(obj)
-            % Get all weather systems we are inside of
-            global globalWeather;
-            w = {};
-            for i = 1:length(globalWeather.weatherCells)
-                wLoc = globalWeather.weatherCells{i}.getPosition();
-                dist = airtaxi.funcs.calc_dist(wLoc,obj.location);
-                if dist < globalWeather.weatherCells{i}.getRadius()
-                    % we are in this weather cell, return this one
-                    w{end+1} = globalWeather.weatherCells{i};
-                end
-            end
-        end
+%         function w = getWeather(obj)
+%             % Get all weather systems we are inside of
+%             global globalWeather;
+%             w = {};
+%             for i = 1:length(globalWeather.weatherCells)
+%                 wLoc = globalWeather.weatherCells{i}.getPosition();
+%                 dist = airtaxi.funcs.calc_dist(wLoc,obj.location);
+%                 if dist < globalWeather.weatherCells{i}.getRadius()
+%                     % we are in this weather cell, return this one
+%                     w{end+1} = globalWeather.weatherCells{i};
+%                 end
+%             end
+%         end
         
         function reachedDestination(obj)
             obj.setLocation([obj.destination.location(1:2),obj.location(3)]);

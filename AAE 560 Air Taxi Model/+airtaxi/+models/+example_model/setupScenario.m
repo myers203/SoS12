@@ -1,8 +1,7 @@
-function setupScenario(input_file,user_input,acAgents,portAgents,operator,weather)
+function setupScenario(input_file,user_input,acAgents,portAgents,operator)
     % Currently assumes a single operator
     n_ports     = length(portAgents);
     n_aircraft  = length(acAgents);
-    team_id     = operator.team_id;
     
     [~,~,port_info]    = xlsread(input_file,'Ports');
     [~,~,ac_info]      = xlsread(input_file,'Aircraft');
@@ -37,7 +36,7 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
         PortRange.Ymax = max(PortRange.Ymax,loc(2));
     end
    
-    weather.setZone(PortRange);
+%     weather.setZone(PortRange);
 
     %Setting number of aircraft to be the same as available landing zones
     %in case of user error.
@@ -84,6 +83,11 @@ function setupScenario(input_file,user_input,acAgents,portAgents,operator,weathe
     bounds = findPlottingBounds(port_locations);
     airtaxi.funcs.plots.Plotter.setup([],acAgents,portAgents,bounds);
     
+    % Plot Visibility
+    alpha = 0.1 + 0.2 * visibility;
+    c = [0 0 1 alpha];
+    pos = [bounds.xLim(1) bounds.yLim(1) bounds.xLim(2) bounds.yLim(2)];
+    rectangle('Position',pos,'FaceColor',c,'EdgeColor',c);
 end
 
 function ac_type_params = parseACInfo(ac_info)
