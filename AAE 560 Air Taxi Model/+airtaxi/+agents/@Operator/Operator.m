@@ -40,7 +40,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.takeoff_clearance   = 9;
             obj.landing_clearance = 6;
             obj.separation_distance = 0;
-            obj.crash_threshold = 50/3280.84;
+            obj.crash_threshold = 0;
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
             
@@ -216,19 +216,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                         return;
                     elseif acft.holding_time>0  
                         for k = 1:length(ids)
-                            %Break the tie with min id
-                            if  acft.holding_time==max(holding_times)&&...
-                                sum(holding_times==max(holding_times))>1&&...
-                                acft.ac_id==min(ids)
-                                check = true;
-                                return;
-                                %let it go if it has the longest holding
-                                %time
-                            elseif acft.holding_time==max(holding_times)...
-                                &&sum(holding_times==max(holding_times))==1
-                                check = true;
-                                return;
-                            elseif acft.holding_time<max(holding_times)%check is false if ac not first one there
+                            if acft.holding_time<max(holding_times)%check is false if ac not first one there
                                 check = false;
                                 return;
                             end
@@ -338,18 +326,27 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             for col = 1:length(A) - 1
                 while(row < length(A)+1)
                     if(A(row,col) <= obj.crash_threshold) 
-                        p_id_col = obj.aircraft_fleet{col}.current_port;
-                        p_id_row = obj.aircraft_fleet{row}.current_port;
+%                         p_id_col = obj.aircraft_fleet{col}.current_port;
+%                         p_id_row = obj.aircraft_fleet{row}.current_port;
+%                         port_check1 = obj.aircraft_fleet{col}.location(1)==...
+%                                     obj.serviced_ports{p_id_col}.location(1);
+%                         port_check2 = obj.aircraft_fleet{row}.location(1)==...
+%                                 obj.serviced_ports{p_id_row}.location(1);
+                            for i = 1:obj.num_ports
+                                port_check = obj.aircraft_fleet{row}.location(1)==...
+                                obj.serviced_ports{i}.location(1); 
+                                if port_check == true
+                                    break;
+                                end
+                            end
                         if ~strcmp(obj.aircraft_fleet{col}.operation_mode,'idle')
-                           if ~sum(obj.aircraft_fleet{col}.location(1:2)==...
-                                    obj.serviced_ports{p_id_col}.location(1:2))==2
+                           if ~(port_check)
                                     obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row}); 
                            end
                         end
-                        
+
                         if ~strcmp(obj.aircraft_fleet{row}.operation_mode,'idle')
-                           if ~sum(obj.aircraft_fleet{row}.location(1:2)==...
-                                obj.serviced_ports{p_id_row}.location(1:2))==2                           
+                           if  ~(port_check)                      
                                 obj.aircraft_fleet{row}.midAirCollision(obj.rel_speed_bw_acft{col,row});
                            end
                         end
@@ -360,6 +357,10 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 row = col + 2;
             end
         end
+        
+ 
+        
+        
         
         function logFatalCrash(obj,mode)
             if strcmp(mode,'human')

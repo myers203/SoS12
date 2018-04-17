@@ -12,7 +12,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         operation_mode      
         current_port
         holding_time
-        waiting_time
         % --- Dynamics properties ---
         location            % Current location
         speed               % Current speed
@@ -73,7 +72,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
 
             obj.arrival_threshold   = 3.2;
             obj.holding_time = 0;
-            obj.waiting_time = 0;
+
             % --- Movement ---
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
@@ -108,13 +107,11 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     case {'idle'}
                     case {'wait2pickup'}
                         if obj.parent.getClearance(obj)
-                            obj.waiting_time=0;
                             obj.setOperationMode('enroute2pickup');
                             obj.startPickup();
                         end
                     case {'wait4trip'}
                         if obj.parent.getClearance(obj)
-                            obj.waiting_time=0;
                             obj.setOperationMode('onTrip');
                             obj.startTrip();
                         end
