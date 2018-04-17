@@ -24,6 +24,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         rel_speed_bw_acft
         dist_bw_acft
         
+        crash_threshold
+        
         datalink_buffer
         datalink_buf_len
         
@@ -38,7 +40,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.takeoff_clearance   = 9;
             obj.landing_clearance = 6;
             obj.separation_distance = 0;
-
+            obj.crash_threshold = 50/3280.84;
             obj.useSingleNetwork = false;
             obj.location = [0,0,0];
             
@@ -175,83 +177,93 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function check = getClearance(obj,acft)
             vects = obj.vectors2Aircraft(acft);
-            check1 = true;
+            check = true;
             for i=1:size(vects,1)
                 if norm(vects{i,:}) < obj.takeoff_clearance
-                    check1 = false;
+                    check = false;
                     break;
                 end
             end
-            check2 = true;
-            %this loop checks for vehicles that might takeoff
-            %simultaneously at the same vertiport
-            cur_ports = 1:obj.num_aircraft;
-            for i=1:size(vects,1)
-                cur_ports(i) = obj.aircraft_fleet{i}.current_port;    
-            end
-           ids = find(acft.current_port==cur_ports);
-           if ~isempty(ids)
-            for i=1:length(ids)%might not need this anymore...plus an end is missing
-                waiting_times = obj.getWaitingTimes(ids);
-               if (strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'onTrip')...
-                       ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'enroute2pickup'))...
-                       && (strcmp(acft.operation_mode, 'wait4trip')...
-                       ||strcmp(acft.operation_mode, 'wait2pickup')...
-                       &&sum(acft.location(1:2)==obj.aircraft_fleet{ids(i)}.location(1:2))==2)
-                   acft.waiting_time= acft.waiting_time+1;                   
-                   check2 = false;
-                   break;
-               elseif strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait4trip')...
-                       ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait2pickup')...
-                       && strcmp(acft.operation_mode, 'wait4trip')...
-                       ||strcmp(acft.operation_mode, 'wait2pickup')
-                        if sum(waiting_times)==0 % if this is everyone's first time
-                            %in the queue, then we assign a wait-time round
-                            %robin style
-                             for j = 1:length(ids)
-                                obj.aircraft_fleet{ids(j)}.waiting_time =...
-                                    obj.aircraft_fleet{ids(j)}.waiting_time+j;                   
-                             end
-                             %then check the vehicle of interest's
-                             %clearance
-                            waiting_times = obj.getWaitingTimes(ids);                           
-                            if acft.waiting_time<max(waiting_times)
-                                check2=false;
-                                break;
-                            end
-                        elseif acft.waiting_time==0 %the case that the ac 
-                            %just landed and others are already waiting
-                            acft.waiting_time= acft.waiting_time+1;
-                                check2=false;
-                                break;                            
-                       elseif acft.waiting_time<max(waiting_times) %the case 
-                           %that the ac has already been waiting but is not
-                           %next in line
-                           acft.waiting_time= acft.waiting_time+1;
-                           check2 = false;
-                           break;
-                       elseif sum(waiting_times==max(waiting_times))>1&&...
-                               acft.waiting_time==max(waiting_times)%the case
-                           %that it's not everyone's first time in line and
-                           %there is a tie between the ac and another ac to
-                           %go next
-                           max_ids = ids(waiting_times==max(waiting_times));
-                           %break the tie by updating the other acs waiting
-                           %times and let this ac go
-                           for j=1:length(max_ids)
-                               if max_ids(j)~=acft.ac_id
-                                obj.aircraft_fleet{max_ids(j)}.waiting_time =...
-                                    obj.aircraft_fleet{max_ids(j)}.waiting_time+j; 
-                               end
-                           end
-                           %check2 = true;
-                           break;
-                       end
-               end  
-
-            end                   
-           end
-           check = check1==check2;
+%             check2 = true;
+%             %this loop checks for vehicles that might takeoff
+%             %simultaneously at the same vertiport
+%             cur_ports = 1:obj.num_aircraft;
+%             for i=1:size(vects,1)
+%                 cur_ports(i) = obj.aircraft_fleet{i}.current_port;    
+%             end
+%            ids = find(acft.current_port==cur_ports);
+%            if ~isempty(ids)
+%             for i=1:length(ids)
+%                 waiting_times = obj.getWaitingTimes(ids);
+%                if (strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'onTrip')...
+%                        ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'enroute2pickup'))...
+%                        &&(sum(acft.location(1:2)==obj.aircraft_fleet{ids(i)}.location(1:2))==2)
+%                    acft.waiting_time= acft.waiting_time+1;                   
+%                    check2 = false;
+%                    break;
+%                elseif strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait4trip')...
+%                        ||strcmp(obj.aircraft_fleet{ids(i)}.operation_mode, 'wait2pickup')
+%                         if sum(waiting_times)==0 % if this is everyone's first time
+%                             %in the queue, then we assign a wait-time round
+%                             %robin style
+%                              for j = 1:length(ids)
+%                                 obj.aircraft_fleet{ids(j)}.waiting_time =...
+%                                     obj.aircraft_fleet{ids(j)}.waiting_time+j;                   
+%                              end
+%                              %then check the vehicle of interest's
+%                              %clearance
+%                             waiting_times = obj.getWaitingTimes(ids);                           
+%                             if acft.waiting_time<max(waiting_times)
+%                                 check2=false;
+%                                 break;
+%                             end
+%                             break;
+%                         elseif acft.waiting_time==0 %the case that the ac 
+%                             %just landed and others are already waiting
+%                             acft.waiting_time= acft.waiting_time+1;
+%                                 check2=false;
+%                                 break;                            
+%                        elseif acft.waiting_time<max(waiting_times) %the case 
+%                            %that the ac has already been waiting but is not
+%                            %next in line
+%                            acft.waiting_time= acft.waiting_time+1;
+%                            check2 = false;
+%                            break;
+%                        elseif sum(waiting_times==max(waiting_times))>1&&...
+%                                acft.waiting_time==max(waiting_times)%the case
+%                            %that it's not everyone's first time in line and
+%                            %there is a tie between the ac and another ac to
+%                            %go next
+%                            max_ids = ids(waiting_times==max(waiting_times));
+%                            %break the tie by updating the other acs waiting
+%                            %times and let this ac go
+%                            for j=1:length(max_ids)
+%                                if max_ids(j)~=acft.ac_id
+%                                 obj.aircraft_fleet{max_ids(j)}.waiting_time =...
+%                                     obj.aircraft_fleet{max_ids(j)}.waiting_time+j; 
+%                                end
+%                            end
+%                            waiting_times = obj.getWaitingTimes(max_ids);
+%                            broketie = true;
+%                            id = acft.ac_id;
+%                            time = obj.last_update_time+1;
+%                            port = acft.current_port;
+%                            table(id,port,broketie,time);
+%                            if acft.waiting_time<max(waiting_times)
+%                                check2 = false;
+%                                broketie = check2;
+%                                table(id,port,broketie,time);
+%                                break;
+%                            end
+%                            broketie = check2;
+%                             table(id,port,broketie,time)
+%                            break;
+%                        end
+%                end  
+% 
+%             end                   
+%            end
+%            check = check1==check2;
         end
            
         
@@ -398,42 +410,30 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function checkForCollision(obj)
-%             flag_crashed = zeros(1,obj.num_aircraft);
-%             for i=1:obj.num_aircraft
-%                 for j=1:obj.num_aircraft
-%                     if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
-%                             {'onTrip', 'enroute2pickup'}))&&...
-%                             (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-%                             {'onTrip', 'enroute2pickup'}))
-% 
-%                         s_rel = obj.rel_speed_bw_acft{i,j};
-%                         %will need to model pdf for inside of EASA's
-%                         %clearance parameter
-%                         if obj.dist_bw_acft{i,j} < 100/6076.12 % ft/nmi
-%                             %all aircraft involved collide
-%                             flag_crashed(i) = 1;
-%                             flag_crashed(j) = 1;
-%                         end
-%                     end
-%                 end
-%             end
-%             
-%             % reset all crashed aircraft
-%             for i=1:obj.num_aircraft
-%                 if flag_crashed(i)
-%                     % force collision to destroy
-%                     obj.aircraft_fleet{i}.midAirCollision(s_rel);
-%                 end
-%             end
 
             check = cell2mat(obj.dist_bw_acft);
             A = tril(check,-1); %use only the lower triangular matrix not including the diagonal term
-            
+
             row = 2; %row count
             for col = 1:length(A) - 1
                 while(row < length(A)+1)
-                    if(A(row,col) <= 100/6076.12) 
-                        obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row});
+                    if(A(row,col) <= obj.crash_threshold) 
+                        p_id_col = obj.aircraft_fleet{col}.current_port;
+                        p_id_row = obj.aircraft_fleet{row}.current_port;
+                        if ~strcmp(obj.aircraft_fleet{col}.operation_mode,'idle')
+                           if ~sum(obj.aircraft_fleet{col}.location(1:2)==...
+                                    obj.serviced_ports{p_id_col}.location(1:2))==2
+                                    obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row}); 
+                           end
+                        end
+                        
+                        if ~strcmp(obj.aircraft_fleet{row}.operation_mode,'idle')
+                           if ~sum(obj.aircraft_fleet{row}.location(1:2)==...
+                                obj.serviced_ports{p_id_row}.location(1:2))==2                           
+                                obj.aircraft_fleet{row}.midAirCollision(obj.rel_speed_bw_acft{col,row});
+                           end
+                        end
+          
                     end
                     row = row + 1; 
                 end
