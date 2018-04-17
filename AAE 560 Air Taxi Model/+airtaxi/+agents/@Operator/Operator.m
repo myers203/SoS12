@@ -85,7 +85,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     obj.spawnDemand(port,time);
                 end
 
-                obj.calcAircraftDynamicData();
+                
                 obj.bufferDatalinkData();
                 obj.last_update_time = time;
                 obj.checkForCollision();
@@ -176,10 +176,11 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function check = getClearance(obj,acft)
-            vects = obj.vectors2Aircraft(acft);
+            obj.calcAircraftDynamicData();
+            row = acft.ac_id;
             check = true;
-            for i=1:size(vects,1)
-                if norm(vects{i,:}) < obj.takeoff_clearance
+            for i=1:obj.num_aircraft
+                if obj.dist_bw_acft{row,i} < obj.takeoff_clearance
                     check = false;
                     break;
                 end
@@ -216,7 +217,19 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                         return;
                     elseif acft.holding_time>0  
                         for k = 1:length(ids)
-                            if acft.holding_time<max(holding_times)%check is false if ac not first one there
+                            %Break the tie with min id
+                            if  acft.holding_time==max(holding_times)&&...
+                                sum(holding_times==max(holding_times))>1&&...
+                                acft.ac_id==min(ids)
+                                check = true;
+                                return;
+                                %let it go if it has the longest holding
+                                %time
+                            elseif acft.holding_time==max(holding_times)...
+                                &&sum(holding_times==max(holding_times))==1
+                                check = true;
+                                return;
+                            elseif acft.holding_time<max(holding_times)%check is false if ac not first one there
                                 check = false;
                                 return;
                             end
@@ -326,27 +339,24 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             for col = 1:length(A) - 1
                 while(row < length(A)+1)
                     if(A(row,col) <= obj.crash_threshold) 
-%                         p_id_col = obj.aircraft_fleet{col}.current_port;
-%                         p_id_row = obj.aircraft_fleet{row}.current_port;
-%                         port_check1 = obj.aircraft_fleet{col}.location(1)==...
-%                                     obj.serviced_ports{p_id_col}.location(1);
-%                         port_check2 = obj.aircraft_fleet{row}.location(1)==...
-%                                 obj.serviced_ports{p_id_row}.location(1);
                             for i = 1:obj.num_ports
-                                port_check = obj.aircraft_fleet{row}.location(1)==...
-                                obj.serviced_ports{i}.location(1); 
-                                if port_check == true
+                                port_check1 = obj.aircraft_fleet{row}.location(1)==...
+                                obj.serviced_ports{i}.location(1);
+                                port_check2 = obj.aircraft_fleet{col}.location(1)==...
+                                obj.serviced_ports{i}.location(1);                             
+                                if port_check1||port_check2 == true
                                     break;
                                 end
                             end
+                            
                         if ~strcmp(obj.aircraft_fleet{col}.operation_mode,'idle')
-                           if ~(port_check)
+                           if ~(port_check1||port_check2)
                                     obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row}); 
                            end
                         end
 
                         if ~strcmp(obj.aircraft_fleet{row}.operation_mode,'idle')
-                           if  ~(port_check)                      
+                           if  ~(port_check1||port_check2)                      
                                 obj.aircraft_fleet{row}.midAirCollision(obj.rel_speed_bw_acft{col,row});
                            end
                         end
@@ -392,16 +402,12 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                             {'onTrip', 'enroute2pickup'}))&&...
                     (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
                             {'onTrip', 'enroute2pickup'}))
-                        
-                        % calc vectors between aircraft
+                        % calc distance between aircraft
                         obj.vectors_bw_acft{i,j} = ...
                             obj.aircraft_fleet{i}.getLocation - ...
-                            obj.aircraft_fleet{j}.getLocation;
-                        
-                        % calc distance between aircraft
+                            obj.aircraft_fleet{j}.getLocation;                        
                         obj.dist_bw_acft{i,j} = ...
                             norm(obj.vectors_bw_acft{i,j});
-                        
                         % calc relative speed between aircraft
                         obj.rel_speed_bw_acft{i,j} = ...
                             norm(obj.aircraft_fleet{i}.getRealVelocity - ...
@@ -409,7 +415,10 @@ classdef Operator < publicsim.agents.hierarchical.Parent
 
                         %relative speed calculation to km/h for pdf
                         obj.rel_speed_bw_acft{i,j} = ...
-                            obj.rel_speed_bw_acft{i,j}*1.60934*60; %km/h for pdf  
+                            obj.rel_speed_bw_acft{i,j}*60; %km/h for pdf                          
+%                         end
+                        
+
                     end
                 end
             end

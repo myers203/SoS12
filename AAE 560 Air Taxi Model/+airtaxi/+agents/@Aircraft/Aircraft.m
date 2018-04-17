@@ -77,6 +77,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
+            obj.dir_vect = [0 0];
             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
             obj.cruise_speed       = 270/...          % [km/hr]
                 obj.convert.unit('hr2min'); %[mi/min]
@@ -233,11 +234,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
 			% Update arrival at the ports 
             if dist2dest < obj.arrival_threshold && obj.parent.getLandingClearance(obj)
                 if strcmp(obj.operation_mode,'enroute2pickup')
-                    obj.setOperationMode('wait4trip');
                     obj.reachedPickupPort();
                     obj.holding_time = 0;
                 else
-                    obj.setOperationMode('idle');
                     obj.reachedDestination();
                     obj.holding_time = 0;
                 end
@@ -249,7 +248,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             else
                 obj.speed = 0;
                 obj.holding_time = obj.holding_time + obj.run_interval;
-
             end
 			
 			% Update the realtime plot 
