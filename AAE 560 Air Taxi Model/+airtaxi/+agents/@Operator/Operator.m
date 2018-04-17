@@ -207,12 +207,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     return; 
                 end               
             end
-%             ids = (1:obj.num_aircraft);            
-%             id = row;
-%             time = obj.last_update_time;
-%             fprintf('id = %g\t port = %g\t time = %g check = %g\n',id,port,time,check)
-%             list = [dist_at_port',ids(port==cur_ports)'];
-%             fprintf(1,'dist = %2d \t ids = %2d \n',list')
+
         end
            
         
@@ -240,7 +235,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 for j = 1:length(ids)
                     holding_times(j) = obj.aircraft_fleet{ids(j)}.holding_time;                   
                 end
-                    if acft.holding_time==0 %first time in the queue
+                    if acft.holding_time==0&&max(holding_times>0) %first time in the queue
                         check = false;
                         return;
                     elseif acft.holding_time>0  
