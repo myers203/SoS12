@@ -42,6 +42,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         visual_range
         speedScaleFactor
         
+        visual_sa_buffer
+        visual_sa_buffer_len
+        
         % --- Sim properties ---
         last_update_time
         plotter
@@ -70,6 +73,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.destination         = struct();
             
             obj.customers_served_count = 0;
+
+            obj.visual_sa_buffer = [];
+            obj.visual_sa_buffer_len = 0;
 
             obj.arrival_threshold   = 3.2;
             obj.holding_time = 0;
@@ -159,28 +165,30 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             
             % modify vector based on SA data
             delta_theta = 0;
-            for i=1:size(acftRelPos,1)
-                d_theta = 0;
-                v = acftRelPos{i,:};
-                dist = norm(v);
-                % only process aircraft within threhold distance
-                if dist < obj.nav_dist_thresh  
-                    % get angle between flight vector and aircraft vector
-                    alpha = atan2(obj.dir_vect(2),obj.dir_vect(1)) - ...
-                        atan2(v(2),v(1));
-                    
-                    % only worried about acft in front of us
-                    if (alpha > -pi/2) && (alpha < pi/2)
-                        % d_theta should stear us 45 deg away from other
-                        % aircraft, scaled by distance (closer aircraft
-                        % have higher impace to d_theta
-                        d_theta = sign(alpha)*pi/4 - alpha;
-                        d_theta = d_theta * ...
-                            (obj.nav_dist_thresh-dist)/obj.nav_dist_thresh ;
+            if ~isempty(acftRelPos)
+                for i=1:size(acftRelPos,1)
+                    d_theta = 0;
+                    v = acftRelPos{i,:};
+                    dist = norm(v);
+                    % only process aircraft within threhold distance
+                    if dist < obj.nav_dist_thresh  
+                        % get angle between flight vector and aircraft vector
+                        alpha = atan2(obj.dir_vect(2),obj.dir_vect(1)) - ...
+                            atan2(v(2),v(1));
+
+                        % only worried about acft in front of us
+                        if (alpha > -pi/2) && (alpha < pi/2)
+                            % d_theta should stear us 45 deg away from other
+                            % aircraft, scaled by distance (closer aircraft
+                            % have higher impace to d_theta
+                            d_theta = sign(alpha)*pi/4 - alpha;
+                            d_theta = d_theta * ...
+                                (obj.nav_dist_thresh-dist)/obj.nav_dist_thresh ;
+                        end
                     end
+
+                    delta_theta = delta_theta + d_theta;
                 end
-                
-                delta_theta = delta_theta + d_theta;
             end
         end
         
@@ -197,10 +205,16 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             acftRelPos = obj.parent.getDatalinkData(obj);
         end
         
+        function acftRelPos = getBufferedSA(obj)
+            obj.visual_sa_buffer(1:end-1) = obj.visual_sa_buffer(2:end);
+            obj.visual_sa_buffer{end} = obj.parent.vectors2Aircraft(obj);
+            acftRelPos = obj.visual_sa_buffer{1};
+        end
+        
         function acftRelPos = gatherVisualSA(obj)
             % TODO: add visual SA
 %             w = obj.getWeather();
-            acftRelPos = obj.parent.vectors2Aircraft(obj);
+            acftRelPos = obj.getBufferedSA();
 
             % filter out all aircraft outside of visual range
             del_flag = zeros(1,size(acftRelPos,1));
@@ -210,7 +224,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     del_flag(i) = 1;
                 else  % in normal visual range
                     % now filter out those blocked by weather
-                    vis = exp((1-obj.visibility)*norm(acftRelPos{i,:}));            
+                    vis = exp(2*(obj.visibility-1)*norm(acftRelPos{i,:}));            
 
 %                     vis = 1.0;
 %                     for j=1:length(w)
@@ -269,11 +283,11 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
 %                 obj.setOperationMode('crash-nonfatal')
             end
             crash_location=obj.location;
-            destination = obj.nav_dest;
+            dest = obj.nav_dest;
             id = obj.ac_id;
-            speed = obj.speed;
+            spd = obj.speed;
             time = obj.last_update_time+1;
-            table(id,destination,crash_location,speed,time)
+            table(id,dest,crash_location,spd,time)
             v = obj.location;
             plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);                  
             obj.operation_mode = 'idle';
@@ -400,6 +414,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function setSkill(obj,skill) 
             obj.skill = skill;
+            obj.visual_sa_buffer_len = skill;
+            obj.visual_sa_buffer = cell(skill*2,1);
         end
         
         function team_id = getTeamID(obj)
