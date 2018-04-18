@@ -6,12 +6,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         ac_id               % Numerical reference for the AC
         pilot_type
         cruise_speed        % Cruise speed
-        nav_dest        
+        nav_dest
+        
         % --- Ops properties ---
         operation_mode      
         current_port
         holding_time
-        waiting_time
         % --- Dynamics properties ---
         location            % Current location
         speed               % Current speed
@@ -38,10 +38,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         cruise_altitude
         max_turn_rate       
         arrival_threshold
-        speedScaleFactor
-
         nav_dist_thresh 
         visual_range
+        speedScaleFactor
         
         % --- Sim properties ---
         last_update_time
@@ -73,16 +72,18 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.customers_served_count = 0;
 
             obj.arrival_threshold   = 3.2;
-            
+            obj.holding_time = 0;
+
             % --- Movement ---
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
             obj.speedScaleFactor   = speed_scale_factor;
 
-%             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
-%             obj.cruise_speed       = 270/...          % [km/hr]
-%                 obj.convert.unit('hr2min'); %[mi/min]
+            obj.dir_vect = [0 0];
+            % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
+            obj.cruise_speed       = 270/...          % [km/hr]
+                obj.convert.unit('hr2min'); %[mi/min]
             
             % only account for acft < XXX nmi away
             obj.nav_dist_thresh    = 20; 
@@ -233,27 +234,25 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             dist2dest = airtaxi.funcs.calc_dist(obj.location,obj.nav_dest);
             
             dist_flown = obj.speed*time_since_update;
-            alt_climb  = obj.climb_rate*time_since_update;
+            alt_climb  = 3;
             
 			% Update arrival at the ports 
-            if dist2dest < obj.arrival_threshold
+            if dist2dest < obj.arrival_threshold && obj.parent.getLandingClearance(obj)
                 if strcmp(obj.operation_mode,'enroute2pickup')
                     obj.reachedPickupPort();
+                    obj.holding_time = 0;
                 else
                     obj.reachedDestination();
+                    obj.holding_time = 0;
                 end
-            else  % Have not arrived yet
+            elseif dist2dest>obj.arrival_threshold % Have not arrived yet
                 obj.setLocation([obj.location(1:2) + dist_flown*obj.dir_vect ...
-                    obj.location(3) + alt_climb]);
-                
+                 obj.location(3)]);  
                 % Set dir_vect to new vector
                 obj.dir_vect = obj.dir_vect_next;
-                
-                % Check for collision with other aircraft.  Since air
-                % collisions come in pairs, this must be handled at the
-                % fleet (operator) level and is called here.
-                %obj.parent.checkForCollision(obj);
-
+            else
+                obj.speed = 0;
+                obj.holding_time = obj.holding_time + obj.run_interval;
             end
 			
 			% Update the realtime plot 
@@ -269,7 +268,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 obj.parent.logNonFatalCrash(obj.pilot_type);
 %                 obj.setOperationMode('crash-nonfatal')
             end
-            
+            crash_location=obj.location;
+            destination = obj.nav_dest;
+            id = obj.ac_id;
+            speed = obj.speed;
+            time = obj.last_update_time+1;
+            table(id,destination,crash_location,speed,time)
+            v = obj.location;
+            plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);                  
             obj.operation_mode = 'idle';
             obj.location = obj.nav_dest;
             obj.speed = 0;
@@ -293,13 +299,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
 %         end
         
         function reachedDestination(obj)
+            obj.setOperationMode('idle');           
             obj.setLocation([obj.destination.location(1:2),obj.location(3)]);
             obj.current_port = obj.destination.id;
             obj.destination = struct();
             obj.nav_dest = [];
 			
             obj.speed = 0;
-            obj.setOperationMode('idle');
+
 			
             % Reset plot trajectory
             obj.plotter.traj = [];
@@ -324,11 +331,13 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function pickupCustomer(obj)
             if obj.pickup.id == obj.current_port
-                obj.updateArrival(obj.pickup.id);
                 obj.setOperationMode('wait4trip');
+                obj.updateArrival(obj.pickup.id);
+                
             else
-                obj.pickup.location = obj.parent.getPortById(obj.pickup.id).getLocation();
                 obj.setOperationMode('wait2pickup');
+                obj.pickup.location = obj.parent.getPortById(obj.pickup.id).getLocation();
+                
             end
         end
         
@@ -347,6 +356,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.nav_dest = obj.pickup.location;
             obj.dir_vect = obj.getVector(obj.location, obj.nav_dest);
             obj.speed    = obj.cruise_speed;
+            obj.location(3) = 3; 
         end
         
         function startTrip(obj)
@@ -354,6 +364,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.nav_dest = obj.destination.location;
             obj.dir_vect = obj.getVector(obj.location, obj.nav_dest);
             obj.speed    = obj.cruise_speed;
+            obj.location(3) = 3; 
         end
         
         function setPlotter(obj,plotter)
@@ -376,9 +387,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     obj.plotter.marker.type = 'o';
                 case {'onTrip', 'enroute2pickup'}
                     obj.plotter.marker.type = 's';
-                case {'crash-fatal', 'crash-nonfatal'}
-                    obj.plotter.marker.type = 'x';
-                    obj.color = 'r';
             end
         end
         
