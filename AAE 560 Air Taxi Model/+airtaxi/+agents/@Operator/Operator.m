@@ -310,7 +310,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function setNetDelay(obj,delay)
             obj.datalink_buf_len = delay;
-            obj.datalink_buffer = cell(delay,1);
+            obj.datalink_buffer = cell(delay*2,1);
         end
         
         function port_id = findNearbyPort(obj,ac_location)
