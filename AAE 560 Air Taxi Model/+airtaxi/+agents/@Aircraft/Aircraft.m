@@ -7,7 +7,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         pilot_type
         cruise_speed        % Cruise speed
         nav_dest
-        
+        speedScaleFactor        
         % --- Ops properties ---
         operation_mode      
         current_port
@@ -39,7 +39,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         max_turn_rate       
         arrival_threshold
 
-        speedScaleFactor
+
 
         nav_dist_thresh 
         visual_range
@@ -267,13 +267,13 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.plotter.updatePlot(obj.location);
         end
         
-        function midAirCollision(obj,s_rel)
-            p = 1/(1+exp(5.5-.075*s_rel));
-            if p>.5
-                obj.parent.logFatalCrash(obj.pilot_type);
-            else
-                obj.parent.logNonFatalCrash(obj.pilot_type);
-            end
+        function midAirCollision(obj,s_rel,prob)
+            p = prob*(1/(1+exp(5.5-.075*s_rel)));
+            non_f_p = prob*(1-p);
+            
+                obj.parent.logFatalCrash(obj.pilot_type,p);
+                obj.parent.logNonFatalCrash(obj.pilot_type,non_f_p);
+
             crash_location=obj.location;
             destination = obj.nav_dest;
             id = obj.ac_id;

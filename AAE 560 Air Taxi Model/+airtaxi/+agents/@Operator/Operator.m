@@ -40,7 +40,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             %obj.takeoff_clearance   = 0; this is set in spreadsheet
             %obj.landing_clearance = 0; this is set in spreadsheet
             %obj.separation_distance = 0; this is set in spreadsheet
-            obj.crash_threshold = 2*30/3280.84; %ft/km - factor of safety 
+            obj.crash_threshold = 30/3280.84; %ft/km - factor of safety 
             %x estimation of diameter of wingspan/rotors
             %of main rotor
             obj.useSingleNetwork = false;
@@ -352,7 +352,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             for col = 1:length(A) - 1
                 while(row < length(A)+1)
                     p = setCrashProb(A(row,col));
-                    if p >= 0.5
                             for i = 1:obj.num_ports
                                 port_check1 = obj.aircraft_fleet{row}.location(1)==...
                                 obj.serviced_ports{i}.location(1);
@@ -365,17 +364,16 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                             
                         if ~strcmp(obj.aircraft_fleet{col}.operation_mode,'idle')
                            if ~(port_check1||port_check2)
-                                    obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row}); 
+                                    obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row},p); 
                            end
                         end
 
                         if ~strcmp(obj.aircraft_fleet{row}.operation_mode,'idle')
                            if  ~(port_check1||port_check2)                      
-                                obj.aircraft_fleet{row}.midAirCollision(obj.rel_speed_bw_acft{col,row});
+                                obj.aircraft_fleet{row}.midAirCollision(obj.rel_speed_bw_acft{col,row},p);
                            end
                         end
           
-                    end
                     row = row + 1; 
                 end
                 row = col + 2;
@@ -383,13 +381,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function p = setCrashProb(distance)
-            c1 = (200+obj.crash_threshold)^2/2  - obj.crash_threshold^2/2;
-            c2 = 200; %clearance needed for takeoff / landing helicopters per FAA
-            c3 = 200 + obj.crash_threshold;
-            c4 = 1; y = [1;0]; C = [c1 c2; c3 c4]; x = C\y;
+            
             if distance <= 200/3280.84 + obj.crash_threshold
-                p = 1 - (x(1)*(distance^2)/2 + b*distance - (x(1)*obj.crash_threshold^2/2 ...
-                +x(2)*obj.crash_threshold));
+                p = exp(-2*distance/(obj.crash_threshold+(obj.crash_threshold+200/3280.84)));
             else
                 p = 0;
             end
@@ -397,19 +391,19 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         
         
-        function logFatalCrash(obj,mode)
+        function logFatalCrash(obj,mode,p)
             if strcmp(mode,'human')
-                obj.fatal_crashes_human = obj.fatal_crashes_human+1;
+                obj.fatal_crashes_human = obj.fatal_crashes_human+p;
             else
-                obj.fatal_crashes_auto = obj.fatal_crashes_auto+1;
+                obj.fatal_crashes_auto = obj.fatal_crashes_auto+p;
             end
         end
         
-        function logNonFatalCrash(obj,mode)
+        function logNonFatalCrash(obj,mode,non_f_p)
             if strcmp(mode,'human')
-                obj.nonfatal_crashes_human = obj.nonfatal_crashes_human+1;
+                obj.nonfatal_crashes_human = obj.nonfatal_crashes_human+non_f_p;
             else
-                obj.nonfatal_crashes_auto = obj.nonfatal_crashes_auto+1;
+                obj.nonfatal_crashes_auto = obj.nonfatal_crashes_auto+non_f_p;
             end
         end
 
@@ -440,7 +434,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
 
                         %relative speed calculation to km/h for pdf
                         obj.rel_speed_bw_acft{i,j} = ...
-                            obj.rel_speed_bw_acft{i,j}*60; %km/h for pdf                          
+                            obj.rel_speed_bw_acft{i,j}*60/obj.aircraft_fleet{i}.speedScaleFactor; %km/h for cdf                          
 %                         end
                         
 
