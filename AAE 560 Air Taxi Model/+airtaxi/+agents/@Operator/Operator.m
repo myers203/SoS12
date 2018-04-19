@@ -27,7 +27,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         crash_threshold
         
         datalink_buffer
-        datalink_buf_len
         
         % --- Sim properties ---
         last_update_time
@@ -59,7 +58,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.dist_bw_acft = {};                        
             
             obj.datalink_buffer = [];
-            obj.datalink_buf_len = 0;
             
             % --- Simulation ---
             obj.run_interval     = 1;
@@ -87,11 +85,12 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     obj.spawnDemand(port,time);
                 end
 
+                obj.calcVectorsAndDistBetweenAircraft();
                 obj.bufferDatalinkData();
-                obj.last_update_time = time;
                 obj.checkForCollision();
+
+                obj.last_update_time = time;
                 obj.scheduleAtTime(time+obj.run_interval);
-             
             end
         end
         
@@ -177,7 +176,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function check = getClearance(obj,acft)
-            obj.calcVectorsAndDistBetweenPorts(); 
+            obj.calcVectorsAndDistBetweenAircraft(); 
             obj.calcAircraftDynamicDataPort(acft);
             %checks the distance between ac's from the point of view of 
             %an ac waiting to takeoff with ones in the sky
@@ -206,7 +205,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     return; 
                 end               
             end
-
         end
            
         
@@ -271,14 +269,15 @@ classdef Operator < publicsim.agents.hierarchical.Parent
    
                 
         function bufferDatalinkData(obj)
-            obj.calcVectorsAndDistBetweenPorts();
             obj.datalink_buffer(1:end-1) = obj.datalink_buffer(2:end);
             obj.datalink_buffer{end} = obj.vectors_bw_acft;
         end
         
         function data = getDatalinkData(obj,acft)
             data = obj.datalink_buffer{1};
-            data = data(:,acft.ac_id);
+            if ~isempty(data)
+                data = data(:,acft.ac_id);
+            end
         end
 
         function setPickupArrival(obj,port_id,ac_id)
@@ -309,8 +308,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function setNetDelay(obj,delay)
-            obj.datalink_buf_len = delay;
-            obj.datalink_buffer = cell(delay*2,1);
+            obj.datalink_buffer = cell(delay*5+1,1);
         end
         
         function port_id = findNearbyPort(obj,ac_location)
@@ -357,13 +355,18 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         function checkForCollision(obj)
             flag_crashed = zeros(obj.num_aircraft,1);
             % iterate over the lower tiangular matrix
-            obj.calcVectorsAndDistBetweenPorts();
-            for row = 2:size(obj.dist_bw_acft,1)
+            for row = 2:obj.num_aircraft
                 for col = 1:row-1
-                    if obj.dist_bw_acft{row,col} <= obj.crash_threshold
-                        obj.calcRelSpeedBwAircraft();
-                        flag_crashed(row) = obj.rel_speed_bw_acft{col,row};
-                        flag_crashed(col) = obj.rel_speed_bw_acft{col,row};
+                    if obj.dist_bw_acft{row,col} <= 5
+                        acft1 = obj.getAircraftById(row);
+                        acft2 = obj.getAircraftById(col);
+                        min_passing_dist = obj.closestPassingDistance(acft1,acft2);
+
+                        if min_passing_dist <= obj.crash_threshold
+                            obj.calcRelSpeedBwAircraft();
+                            flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
+                            flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
+                        end
                     end
                 end
             end
@@ -372,41 +375,21 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     obj.aircraft_fleet{i}.midAirCollision(flag_crashed(i));
                 end
             end
-
-%             check = cell2mat(obj.dist_bw_acft);
-%             A = tril(check,-1); %use only the lower triangular matrix not including the diagonal term
-% 
-%             row = 2; %row count
-%             for col = 1:length(A) - 1
-%                 while(row < length(A)+1)
-%                     if(A(row,col) <= obj.crash_threshold) 
-%                             for i = 1:obj.num_ports
-%                                 port_check1 = obj.aircraft_fleet{row}.location(1)==...
-%                                 obj.serviced_ports{i}.location(1);
-%                                 port_check2 = obj.aircraft_fleet{col}.location(1)==...
-%                                 obj.serviced_ports{i}.location(1);                             
-%                                 if port_check1||port_check2 == true
-%                                     break;
-%                                 end
-%                             end
-%                             
-%                         if ~strcmp(obj.aircraft_fleet{col}.operation_mode,'idle')
-%                            if ~(port_check1||port_check2)
-%                                     obj.aircraft_fleet{col}.midAirCollision(obj.rel_speed_bw_acft{col,row}); 
-%                            end
-%                         end
-% 
-%                         if ~strcmp(obj.aircraft_fleet{row}.operation_mode,'idle')
-%                            if  ~(port_check1||port_check2)                      
-%                                 obj.aircraft_fleet{row}.midAirCollision(obj.rel_speed_bw_acft{col,row});
-%                            end
-%                         end
-%           
-%                     end
-%                     row = row + 1; 
-%                 end
-%                 row = col + 2;
-%             end
+        end
+        
+        function dist = closestPassingDistance(obj, acft1, acft2)
+            track1.P0 = acft1.getLocation();
+            track1.P0 = track1.P0(1:2);
+            track1.v  = acft1.getNextVector();
+            acft1_spd = acft1.getSpeed();
+            track2.P0 = acft2.getLocation();
+            track2.P0 = track2.P0(1:2);
+            track2.v  = acft2.getNextVector();
+            acft2_spd = acft2.getSpeed();
+            numPoints = max(100,ceil(max(acft1_spd, acft2_spd) / ...
+                obj.crash_threshold * 2));
+            dist = airtaxi.funcs.min_dist( ...
+                track1, acft1_spd, track2, acft2_spd, numPoints);
         end
         
         function logFatalCrash(obj,mode)
@@ -425,15 +408,15 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-        function calcVectorsAndDistBetweenPorts(obj)
+        function calcVectorsAndDistBetweenAircraft(obj)
+            obj.dist_bw_acft    = num2cell(inf(obj.num_aircraft));
+            obj.vectors_bw_acft = repmat(num2cell(inf(1,3),2),obj.num_aircraft);
+            
             for i=1:obj.num_aircraft
+                is_airborne = obj.aircraft_fleet{i}.isAirborne();
                 for j=1:obj.num_aircraft
-                    obj.vectors_bw_acft{i,j} = [Inf Inf Inf];
-                    obj.dist_bw_acft{i,j} = Inf;
-                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'})) &&...
-                            (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))
+                    if (i ~= j) && is_airborne && ...
+                            obj.aircraft_fleet{j}.isAirborne()                           
 
                         % calc vectors between aircraft
                         obj.vectors_bw_acft{i,j} = ...
@@ -453,13 +436,13 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % and lookup.  Each column/row is vector from that aircraft to
             % all others
             for i=1:obj.num_aircraft
+                is_airborne = obj.aircraft_fleet{i}.isAirborne();
                 for j=1:obj.num_aircraft
                     obj.rel_speed_bw_acft{i,j} = 0;
 
-                    if i ~= j && (ismember(obj.aircraft_fleet{j}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))&&...
-                            (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-                            {'onTrip', 'enroute2pickup'}))
+                    if (i ~= j) && is_airborne && ...
+                            obj.aircraft_fleet{j}.isAirborne()
+                        
                         % calc relative speed between aircraft
                         obj.rel_speed_bw_acft{i,j} = ...
                             norm(obj.aircraft_fleet{i}.getRealVelocity - ...
@@ -477,13 +460,10 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % calculate vectors between all aircraft for datalink buffering
             % and lookup.  Each column/row is vector from that aircraft to
             % all others
-            obj.calcVectorsAndDistBetweenPorts();
+            is_airborne = acft.isAirborne();
             for i=1:obj.num_aircraft
                 row = acft.ac_id;
-                if (ismember(acft.getOperationMode, ...
-                        {'wait4trip', 'wait2pickup'}))&&...
-                (ismember(obj.aircraft_fleet{i}.getOperationMode, ...
-                        {'onTrip', 'enroute2pickup'}))
+                if ~is_airborne && obj.aircraft_fleet{i}.isAirborne()
                     % calc distance between aircraft
                     obj.vectors_bw_acft{row,i} = ...
                         obj.aircraft_fleet{row}.getLocation - ...
@@ -496,7 +476,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function v = vectors2Aircraft(obj,acft)
-            obj.calcVectorsAndDistBetweenPorts();
             v = obj.vectors_bw_acft(:,acft.ac_id);
         end
         
@@ -514,8 +493,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-        
      end
-    
 
 end

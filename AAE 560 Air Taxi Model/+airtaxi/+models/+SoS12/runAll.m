@@ -4,7 +4,7 @@ function [simRuns] = runAll(~)
     input_file = '+airtaxi/Inputs.xlsx';
     port_file = '+airtaxi/PortLocations.xlsx';
     output_file = '+airtaxi/output.xlsx';
-    speed_scale_factor = 1/10;
+    speed_scale_factor = 1/5;
 
     % parse run data
     [~,~,runs] = xlsread(input_file,'runs');
@@ -12,6 +12,22 @@ function [simRuns] = runAll(~)
     startRun = runs{1,2};
     stopRun = runs{2,2};
     simSeconds = runs{3,2};
+    
+    % Error Checking
+    if isnumeric(startRun) && isnumeric(stopRun)
+        [~,~,params] = xlsread(input_file,'params');
+        if ~isnumeric(params{startRun+1,1}) || ~isnumeric(params{stopRun+1,1})
+            disp('Start and Stop Run IDs do not match sheet "params"');
+            return;
+        end
+    end
+    
+    % Error Checking
+    if ~isnumeric(simSeconds)
+        disp('Sim Time should be an integer value.');
+        return;
+    end
+    
     numRuns = stopRun-startRun+1;
 
     results = cell(numRuns+1,9);
@@ -20,13 +36,15 @@ function [simRuns] = runAll(~)
         xlswrite(output_file,[1]);
     catch ME
         disp('File is locked, please close.');
+        disp('Press F5 to continue.');
         keyboard
     end
     
     if exist(output_file,'file') > 0
-        disp(['Existing file (', output_file, 'will be deleted.']);
+        disp(['Existing file "', output_file, '" will be deleted.']);
         disp('Change the file name if you want to keep it.');
-%         keyboard
+        disp('Press F5 to continue.');
+        keyboard
         delete(output_file);
     end
     
@@ -38,7 +56,9 @@ function [simRuns] = runAll(~)
     
     % Check for Parallel Processing
     runParallel = license('test','Distrib_Computing_Toolbox');
-    runParallel = false;
+
+    % Comment out this line to run in parallel mode
+%     runParallel = false;
     if runParallel
         for i = 1:numRuns
             F(i) = parfeval(@airtaxi.models.SoS12.runModel_new,1, ...
