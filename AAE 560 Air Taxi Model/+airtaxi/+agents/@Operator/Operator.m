@@ -350,9 +350,11 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                         probs(col) = obj.setCrashProb(obj.dist_bw_acft{row,col});
                         acft1 = obj.getAircraftById(row);
                         acft2 = obj.getAircraftById(col);
-                        if acft1.isAirborne() && acft2.isAirborne()
-                            flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
-                            flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
+                        if probs(row) > 0 && probs(col) > 0
+                            if acft1.isAirborne() && acft2.isAirborne()
+                                flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
+                                flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
+                            end
                         end
 %                         if obj.dist_bw_acft{row,col} <= 5
 %                             acft1 = obj.getAircraftById(row);
@@ -390,8 +392,9 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function p = setCrashProb(obj,distance)
-            if distance <= 200/3280.84 + obj.crash_threshold
-                p = exp(-2*distance/(obj.crash_threshold+(obj.crash_threshold+200/3280.84)));
+            lambda = -log(0.5) / ((obj.crash_threshold+(obj.crash_threshold+200/3280.84))/2 - obj.crash_threshold);
+            if distance <= 200/3280.84
+                p = exp(-lambda*(distance-obj.crash_threshold));
             else
                 p = 0;
             end
