@@ -108,7 +108,8 @@ classdef Plotter < handle
             
               xlim(bounds.xLim);
               ylim(bounds.yLim);
-              xlabel('X [nMi]'); ylabel('Y [nMi]');
+%               xlabel('X [nMi]'); ylabel('Y [nMi]');
+              xlabel('X [km]'); ylabel('Y [km]');
         end
     end
 end
