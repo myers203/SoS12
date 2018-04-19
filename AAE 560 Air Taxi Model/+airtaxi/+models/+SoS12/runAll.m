@@ -59,11 +59,11 @@ function [simRuns] = runAll(~)
     runParallel = license('test','Distrib_Computing_Toolbox');
 
     % Comment out this line to run in parallel mode
-<<<<<<< HEAD
+
     runParallel = false;
-=======
+
     %runParallel = false;
->>>>>>> 7ab1053e600bc5c0c060fcb07481735efa42d8b5
+
     if runParallel
         for i = 1:numRuns
             F(i) = parfeval(@airtaxi.models.SoS12.runModel_new,1, ...
