@@ -88,9 +88,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 end
 
 
-                obj.calcAircraftDynamicData();%checks the distance only between 
-                %ac's already in the sky              
-
                 obj.bufferDatalinkData();
                 obj.last_update_time = time;
                 obj.checkForCollision();
