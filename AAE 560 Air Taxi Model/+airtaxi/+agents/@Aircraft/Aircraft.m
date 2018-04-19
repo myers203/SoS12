@@ -7,7 +7,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         pilot_type
         cruise_speed        % Cruise speed
         nav_dest
-
+        
         % --- Ops properties ---
         operation_mode      
         current_port
@@ -15,13 +15,13 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         % --- Dynamics properties ---
         location            % Current location
         speed               % Current speed
-
+        speedScaleFactor
     end
 
     properties (Access = protected)
 
         color
-        airborne        
+        
         % --- Customer ---
         customer_responses
         customers_served_count
@@ -38,11 +38,11 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         cruise_altitude
         max_turn_rate       
         arrival_threshold
-        speedScaleFactor
+
         nav_dist_thresh 
         visual_range
         
-        
+        airborne
         
         visual_sa_buffer
         
@@ -278,7 +278,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         function midAirCollision(obj,s_rel,prob)
             p = (1/(1+exp(5.5-.075*s_rel)));
             non_f_p = prob*(1-p);
-            p = prob*p;       
+            p = prob*p;
+            
             obj.parent.logFatalCrash(obj.pilot_type,p);
             obj.parent.logNonFatalCrash(obj.pilot_type,non_f_p);
             v = obj.location;
@@ -387,7 +388,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function setOperationMode(obj,mode)
             obj.operation_mode = mode;
-            obj.airborne = false;
+            obj.airborne = true;
             
             % Set Marker color
             switch mode
@@ -395,7 +396,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     obj.plotter.marker.type = 'o';
                 case {'onTrip', 'enroute2pickup'}
                     obj.plotter.marker.type = 's';
-                    obj.airborne = true;
+                    obj.airborne = false;
             end
         end
         

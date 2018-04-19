@@ -291,7 +291,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function setSeparationDistance(obj,dist)
-            obj.separation_distance = dist/1000; % m to km
+            obj.separation_distance = dist;
         end
         
         function setNetDelay(obj,delay)
@@ -346,16 +346,11 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % iterate over the lower tiangular matrix
             for row = 2:obj.num_aircraft
                 for col = 1:row-1
-                    if probs(row)==0
                         probs(row) = obj.setCrashProb(obj.dist_bw_acft{row,col});
-                    end
-                    if probs(col)==0
                         probs(col) = obj.setCrashProb(obj.dist_bw_acft{row,col});
-                    end
                         acft1 = obj.getAircraftById(row);
                         acft2 = obj.getAircraftById(col);
                         if probs(row) > 0 && probs(col) > 0
-                          
                             if acft1.isAirborne() && acft2.isAirborne()
                                 flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
                                 flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
@@ -398,26 +393,26 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function p = setCrashProb(obj,distance)
             lambda = -log(0.5) / ((obj.crash_threshold+(obj.crash_threshold+200/3280.84))/2 - obj.crash_threshold);
-            if distance <= (obj.separation_distance)
-                p = exp(-lambda*abs(distance-obj.crash_threshold));
+            if distance <= 200/3280.84
+                p = exp(-lambda*(distance-obj.crash_threshold));
             else
                 p = 0;
             end
         end
         
-        function logFatalCrash(obj,mode,pr)
+        function logFatalCrash(obj,mode,p)
             if strcmp(mode,'human')
-                obj.fatal_crashes_human = obj.fatal_crashes_human+pr;
+                obj.fatal_crashes_human = obj.fatal_crashes_human+p;
             else
-                obj.fatal_crashes_auto = obj.fatal_crashes_auto+pr;
+                obj.fatal_crashes_auto = obj.fatal_crashes_auto+p;
             end
         end
         
-        function logNonFatalCrash(obj,mode,nfp)
+        function logNonFatalCrash(obj,mode,non_f_p)
             if strcmp(mode,'human')
-                obj.nonfatal_crashes_human = obj.nonfatal_crashes_human+nfp;
+                obj.nonfatal_crashes_human = obj.nonfatal_crashes_human+non_f_p;
             else
-                obj.nonfatal_crashes_auto = obj.nonfatal_crashes_auto+nfp;
+                obj.nonfatal_crashes_auto = obj.nonfatal_crashes_auto+non_f_p;
             end
         end
         
@@ -462,7 +457,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
 
                         %relative speed calculation to km/h for pdf
                         obj.rel_speed_bw_acft{i,j} = ...
-                            obj.rel_speed_bw_acft{i,j}*60; %km/h for pdf                          
+                            obj.rel_speed_bw_acft{i,j}*60/obj.aircraft_fleet{i}.speedScaleFactor; %km/h for pdf                          
                     end
                 end
             end
