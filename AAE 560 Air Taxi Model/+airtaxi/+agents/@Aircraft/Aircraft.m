@@ -15,7 +15,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         % --- Dynamics properties ---
         location            % Current location
         speed               % Current speed
-        
+        speedScaleFactor
     end
 
     properties (Access = protected)
@@ -41,7 +41,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
 
         nav_dist_thresh 
         visual_range
-        speedScaleFactor
+        
         airborne
         
         visual_sa_buffer
@@ -275,19 +275,13 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.plotter.updatePlot(obj.location);
         end
         
-        function midAirCollision(obj,s_rel)
-            p = 1/(1+exp(5.5-.075*s_rel));
-            if p>.5
-                obj.parent.logFatalCrash(obj.pilot_type);
-            else
-                obj.parent.logNonFatalCrash(obj.pilot_type);
-            end
-%             crash_location=obj.location;
-%             dest = obj.nav_dest;
-%             id = obj.ac_id;
-%             spd = obj.speed;
-%             time = obj.last_update_time+1;
-%             table(id,dest,crash_location,spd,time)
+        function midAirCollision(obj,s_rel,prob)
+            p = (1/(1+exp(5.5-.075*s_rel)));
+            non_f_p = prob*(1-p);
+            p = prob*p;
+            
+            obj.parent.logFatalCrash(obj.pilot_type,p);
+            obj.parent.logNonFatalCrash(obj.pilot_type,non_f_p);
             v = obj.location;
             plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);                  
             obj.operation_mode = 'idle';
