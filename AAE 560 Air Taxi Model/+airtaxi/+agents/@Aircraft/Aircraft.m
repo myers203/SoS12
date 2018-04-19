@@ -41,9 +41,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         nav_dist_thresh 
         visual_range
         speedScaleFactor
+        airborne
         
         visual_sa_buffer
-        visual_sa_buffer_len
         
         % --- Sim properties ---
         last_update_time
@@ -65,7 +65,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                                           %          'enroute2pickup',
                                           %          'crash-fatal',
                                           %          'crash-nonfatal'
-            
+            obj.airborne = false;
             obj.color = 'b';
             obj.pilot_type = []; 
             
@@ -75,7 +75,6 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.customers_served_count = 0;
 
             obj.visual_sa_buffer = [];
-            obj.visual_sa_buffer_len = 0;
 
             obj.arrival_threshold   = 3.2;
             obj.holding_time = 0;
@@ -86,7 +85,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.speed              = 0;              % [m/s]
             obj.speedScaleFactor   = speed_scale_factor;
 
-            obj.dir_vect = [0 0];
+            obj.dir_vect      = [0 0];
+            obj.dir_vect_next = [0 0];
             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
             obj.cruise_speed       = 270/...          % [km/hr]
                 obj.convert.unit('hr2min'); %[mi/min]
@@ -224,7 +224,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     del_flag(i) = 1;
                 else  % in normal visual range
                     % now filter out those blocked by weather
-                    vis = exp(2*(obj.visibility-1)*norm(acftRelPos{i,:}));            
+                    vis = exp(1.5*(obj.visibility-1)*norm(acftRelPos{i,:}));            
 
 %                     vis = 1.0;
 %                     for j=1:length(w)
@@ -252,6 +252,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             
 			% Update arrival at the ports 
             if dist2dest < obj.arrival_threshold && obj.parent.getLandingClearance(obj)
+%             if dist2dest < obj.arrival_threshold 
                 if strcmp(obj.operation_mode,'enroute2pickup')
                     obj.reachedPickupPort();
                     obj.holding_time = 0;
@@ -282,12 +283,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 obj.parent.logNonFatalCrash(obj.pilot_type);
 %                 obj.setOperationMode('crash-nonfatal')
             end
-            crash_location=obj.location;
-            dest = obj.nav_dest;
-            id = obj.ac_id;
-            spd = obj.speed;
-            time = obj.last_update_time+1;
-            table(id,dest,crash_location,spd,time)
+%             crash_location=obj.location;
+%             dest = obj.nav_dest;
+%             id = obj.ac_id;
+%             spd = obj.speed;
+%             time = obj.last_update_time+1;
+%             table(id,dest,crash_location,spd,time)
             v = obj.location;
             plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);                  
             obj.operation_mode = 'idle';
@@ -394,6 +395,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function setOperationMode(obj,mode)
             obj.operation_mode = mode;
+            obj.airborne = true;
             
             % Set Marker color
             switch mode
@@ -401,6 +403,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     obj.plotter.marker.type = 'o';
                 case {'onTrip', 'enroute2pickup'}
                     obj.plotter.marker.type = 's';
+                    obj.airborne = false;
             end
         end
         
@@ -413,9 +416,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         end
         
         function setSkill(obj,skill) 
-            obj.skill = skill;
-            obj.visual_sa_buffer_len = skill;
-            obj.visual_sa_buffer = cell(skill*2,1);
+            obj.skill = 5-skill;
+            obj.visual_sa_buffer = cell(obj.skill*2+1,1);
         end
         
         function team_id = getTeamID(obj)
@@ -451,6 +453,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function current_mode = getOperationMode(obj)
             current_mode = obj.operation_mode;
+        end
+        
+        function check = isAirborne(obj)
+            check = obj.airborne;
+        end
+        
+        function v = getNextVector(obj)
+            v = obj.dir_vect_next;
         end
     end
     

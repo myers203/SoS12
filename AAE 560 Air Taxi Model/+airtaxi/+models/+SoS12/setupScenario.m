@@ -77,7 +77,7 @@ function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator)
     airtaxi.funcs.plots.Plotter.setup([],acAgents,portAgents,bounds);
     
     % Plot Visibility
-    alpha = 1 * (1-visibility);
+    alpha = 0.6 * (1-visibility);
     c = [0 0 1 alpha];
     pos = [bounds.xLim(1) bounds.yLim(1) ...
         bounds.xLim(2)-bounds.xLim(1) bounds.yLim(2)-bounds.yLim(1)];
