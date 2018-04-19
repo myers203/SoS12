@@ -40,7 +40,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             %obj.takeoff_clearance   = 0; this is set in spreadsheet
             %obj.landing_clearance = 0; this is set in spreadsheet
             %obj.separation_distance = 0; this is set in spreadsheet
-            obj.crash_threshold = 2*50/3280.84; %ft/km - factor of safety 
+            obj.crash_threshold = 2*30/3280.84; %ft/km - factor of safety 
             %x estimation of diameter of wingspan/rotors
             %of main rotor
             obj.useSingleNetwork = false;
@@ -212,19 +212,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
            
         
-        function resetWaitingTimes(obj,ids)
-            for j = 1:length(ids)
-                obj.aircraft_fleet{ids(j)}.waiting_time=0;
-            end
-        end
-        
-        function w = getWaitingTimes(obj,ids)
-            w = zeros(length(ids),1);
-            for j = 1:length(ids)
-                w(j) = obj.aircraft_fleet{ids(j)}.waiting_time;                   
-            end
-        end
-        
         function check = getLandingClearance(obj,acft)
             ids = zeros(obj.num_aircraft,1);
             d = obj.getAircraftDist2Port(acft);
@@ -362,7 +349,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             row = 2; %row count
             for col = 1:length(A) - 1
                 while(row < length(A)+1)
-                    if(A(row,col) <= obj.crash_threshold) 
+                    p = setCrashPro(A(row,col));
+                    if p >= 0.5
                             for i = 1:obj.num_ports
                                 port_check1 = obj.aircraft_fleet{row}.location(1)==...
                                 obj.serviced_ports{i}.location(1);
@@ -392,7 +380,18 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
- 
+        function p = setCrashProb(distance)
+            c1 = (200+obj.crash_threshold)^2/2  - obj.crash_threshold^2/2;
+            c2 = 200; %clearance needed for takeoff / landing helicopters per FAA
+            c3 = 200 + obj.crash_threshold;
+            c4 = 1; y = [1;0]; C = [c1 c2; c3 c4]; x = C\y;
+            if distance <= 200 + obj.crash_threshold
+                p = 1 - (x(1)*(distance^2)/2 + b*distance - (x(1)*obj.crash_threshold^2/2 ...
+                +x(2)*obj.crash_threshold));
+            else
+                p = 0;
+            end
+        end
         
         
         

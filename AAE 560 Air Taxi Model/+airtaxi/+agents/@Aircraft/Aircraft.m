@@ -269,12 +269,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function midAirCollision(obj,s_rel)
             p = 1/(1+exp(5.5-.075*s_rel));
-            if p>.4
+            if p>.5
                 obj.parent.logFatalCrash(obj.pilot_type);
-%                 obj.setOperationMode('crash-fatal');
             else
                 obj.parent.logNonFatalCrash(obj.pilot_type);
-%                 obj.setOperationMode('crash-nonfatal')
             end
             crash_location=obj.location;
             destination = obj.nav_dest;
