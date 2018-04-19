@@ -387,7 +387,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             c2 = 200; %clearance needed for takeoff / landing helicopters per FAA
             c3 = 200 + obj.crash_threshold;
             c4 = 1; y = [1;0]; C = [c1 c2; c3 c4]; x = C\y;
-            if distance <= 200 + obj.crash_threshold
+            if distance <= 200/3280.84 + obj.crash_threshold
                 p = 1 - (x(1)*(distance^2)/2 + b*distance - (x(1)*obj.crash_threshold^2/2 ...
                 +x(2)*obj.crash_threshold));
             else
