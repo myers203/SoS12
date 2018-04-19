@@ -349,7 +349,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             row = 2; %row count
             for col = 1:length(A) - 1
                 while(row < length(A)+1)
-                    p = setCrashPro(A(row,col));
+                    p = setCrashProb(A(row,col));
                     if p >= 0.5
                             for i = 1:obj.num_ports
                                 port_check1 = obj.aircraft_fleet{row}.location(1)==...
