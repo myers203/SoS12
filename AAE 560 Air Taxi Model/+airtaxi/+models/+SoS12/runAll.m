@@ -26,7 +26,7 @@ function [simRuns] = runAll(~)
     if exist(output_file,'file') > 0
         disp(['Existing file (', output_file, 'will be deleted.']);
         disp('Change the file name if you want to keep it.');
-%         keyboard
+        keyboard
         delete(output_file);
     end
     
@@ -38,7 +38,7 @@ function [simRuns] = runAll(~)
     
     % Check for Parallel Processing
     runParallel = license('test','Distrib_Computing_Toolbox');
-    runParallel = false;
+%     runParallel = false;
     if runParallel
         for i = 1:numRuns
             F(i) = parfeval(@airtaxi.models.SoS12.runModel_new,1, ...
