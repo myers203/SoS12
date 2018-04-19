@@ -38,6 +38,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         cruise_altitude
         max_turn_rate       
         arrival_threshold
+
+        speedScaleFactor
+
         nav_dist_thresh 
         visual_range
         
@@ -49,7 +52,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
     end
     
     methods
-        function obj = Aircraft()
+        function obj = Aircraft(speed_scale_factor)
             obj = obj@airtaxi.agents.Agent();
             obj@publicsim.agents.base.Movable();
             % --- Operaional ---
@@ -77,10 +80,18 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.climb_rate         = 0;
             obj.max_turn_rate      = deg2rad(10);    
             obj.speed              = 0;              % [m/s]
+
             obj.dir_vect = [0 0];
             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
             obj.cruise_speed       = 270/...          % [km/hr]
                 obj.convert.unit('hr2min'); %[mi/min]
+
+            obj.speedScaleFactor   = speed_scale_factor;
+
+%             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
+%             obj.cruise_speed       = 270/...          % [km/hr]
+%                 obj.convert.unit('hr2min'); %[mi/min]
+
             
             % only account for acft < XXX nmi away
             obj.nav_dist_thresh    = 20; 
@@ -196,7 +207,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function acftRelPos = gatherVisualSA(obj)
             % TODO: add visual SA
-            w = obj.getWeather();
+%             w = obj.getWeather();
             acftRelPos = obj.parent.vectors2Aircraft(obj);
 
             % filter out all aircraft outside of visual range
@@ -207,12 +218,14 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                     del_flag(i) = 1;
                 else  % in normal visual range
                     % now filter out those blocked by weather
-                    vis = 1.0;
-                    for j=1:length(w)
-                        % accumulate all visibility impacts
-                        vis = vis * w{j}.getVisibility(obj.location, ...
-                                obj.location + acftRelPos{i,:});
-                    end
+                    vis = exp((1-obj.visibility)*norm(acftRelPos{i,:}));            
+
+%                     vis = 1.0;
+%                     for j=1:length(w)
+%                         % accumulate all visibility impacts
+%                         vis = vis * w{j}.getVisibility(obj.location, ...
+%                                 obj.location + acftRelPos{i,:});
+%                     end
                     if rand() > vis
                         del_flag(i) = 1;
                     end                            
@@ -279,19 +292,19 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.plotter.updatePlot(obj.location);
         end
         
-        function w = getWeather(obj)
-            % Get all weather systems we are inside of
-            global globalWeather;
-            w = {};
-            for i = 1:length(globalWeather.weatherCells)
-                wLoc = globalWeather.weatherCells{i}.getPosition();
-                dist = airtaxi.funcs.calc_dist(wLoc,obj.location);
-                if dist < globalWeather.weatherCells{i}.getRadius()
-                    % we are in this weather cell, return this one
-                    w{end+1} = globalWeather.weatherCells{i};
-                end
-            end
-        end
+%         function w = getWeather(obj)
+%             % Get all weather systems we are inside of
+%             global globalWeather;
+%             w = {};
+%             for i = 1:length(globalWeather.weatherCells)
+%                 wLoc = globalWeather.weatherCells{i}.getPosition();
+%                 dist = airtaxi.funcs.calc_dist(wLoc,obj.location);
+%                 if dist < globalWeather.weatherCells{i}.getRadius()
+%                     % we are in this weather cell, return this one
+%                     w{end+1} = globalWeather.weatherCells{i};
+%                 end
+%             end
+%         end
         
         function reachedDestination(obj)
             obj.setOperationMode('idle');           
@@ -308,7 +321,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         end
         
         function setCruiseSpeed(obj,cruise_speed)
-            obj.cruise_speed = cruise_speed/obj.convert.unit('hr2min');
+            obj.cruise_speed = cruise_speed/obj.convert.unit('hr2min')* ...
+                obj.speedScaleFactor;
         end
         
         function setLocation(obj,loc)
@@ -419,12 +433,12 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             a = [];
         end
         function v = getVelocity(obj)
-            v = obj.speed;
+            v = obj.speed/obj.speedScaleFactor;
         end
         
         %necessary for finding relative speed of impact
         function v = getRealVelocity(obj)
-            v =  obj.speed.*obj.dir_vect;
+            v =  obj.speed.*obj.dir_vect/obj.speedScaleFactor;
         end
         
         function current_mode = getOperationMode(obj)

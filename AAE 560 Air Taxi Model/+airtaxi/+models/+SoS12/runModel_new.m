@@ -1,6 +1,6 @@
-function results = runModel_new(input_file,port_file,runNum,simSeconds)
+function results = runModel_new(input_file,port_file,runNum,simSeconds,speedScaleFactor)
     import publicsim.*;
-    global globalWeather     
+%     global globalWeather     
     
     % Parse Data Input File
     [~,~,params] = xlsread(input_file,'params');
@@ -18,8 +18,8 @@ function results = runModel_new(input_file,port_file,runNum,simSeconds)
     n_ports       = size(portData,1)-1;
 
     % Add weather to the simulation
-    globalWeather = airtaxi.agents.Weather();
-    simInst.AddCallee(globalWeather);
+%     globalWeather = airtaxi.agents.Weather();
+%     simInst.AddCallee(globalWeather);
 
     % Add operator to the simulation
     operator = airtaxi.agents.Operator();
@@ -28,7 +28,7 @@ function results = runModel_new(input_file,port_file,runNum,simSeconds)
     % Set up Aircraft agents
     acAgents = cell(1,n_aircraft);
     for i=1:n_aircraft
-        ac = airtaxi.agents.Aircraft();
+        ac = airtaxi.agents.Aircraft(speedScaleFactor);
         acAgents{i} = ac;
         operator.addChild(ac);
     end
@@ -43,7 +43,7 @@ function results = runModel_new(input_file,port_file,runNum,simSeconds)
     
     % Parse the user input file and assign the attributes to the agents
     airtaxi.models.SoS12.setupScenario(input_file,port_file,runNum, ...
-        acAgents,portAgents,operator,globalWeather);
+        acAgents,portAgents,operator);
 
     % Run simulation
     simInst.runUntil(simTimes.startTime,simTimes.endTime);
@@ -53,5 +53,6 @@ function results = runModel_new(input_file,port_file,runNum,simSeconds)
     parsed_data = airtaxi.funcs.parseLogs(logPath,acAgents,portAgents,duration);
     
     % Postprocessing
-    results = airtaxi.models.SoS12.processData(parsed_data,acAgents,portAgents,operator,runNum);
+    results = airtaxi.models.SoS12.processData(parsed_data,operator, ...
+        runNum,speedScaleFactor);
 end
