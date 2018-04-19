@@ -39,7 +39,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             %obj.takeoff_clearance   = 0; this is set in spreadsheet
             %obj.landing_clearance = 0; this is set in spreadsheet
             %obj.separation_distance = 0; this is set in spreadsheet
-            obj.crash_threshold = 2*50/3280.84; %ft/km - factor of safety 
+            obj.crash_threshold = 2*30/3280.84; %ft/km - factor of safety 
             %x estimation of diameter of wingspan/rotors
             %of main rotor
             obj.useSingleNetwork = false;
@@ -58,7 +58,7 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             obj.dist_bw_acft = {};                        
             
             obj.datalink_buffer = [];
-            
+
             % --- Simulation ---
             obj.run_interval     = 1;
             obj.last_update_time = -1;
@@ -178,8 +178,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         function check = getClearance(obj,acft)
             obj.calcVectorsAndDistBetweenAircraft(); 
             obj.calcAircraftDynamicDataPort(acft);
-            %checks the distance between ac's from the point of view of 
-            %an ac waiting to takeoff with ones in the sky
+            % checks the distance between ac's from the point of view of 
+            % an ac waiting to takeoff with ones in the sky
             row = acft.ac_id;
             dist = cell2mat(obj.dist_bw_acft);
             dist = dist(row,:);
@@ -207,19 +207,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
            
-        
-        function resetWaitingTimes(obj,ids)
-            for j = 1:length(ids)
-                obj.aircraft_fleet{ids(j)}.waiting_time=0;
-            end
-        end
-        
-        function w = getWaitingTimes(obj,ids)
-            w = zeros(length(ids),1);
-            for j = 1:length(ids)
-                w(j) = obj.aircraft_fleet{ids(j)}.waiting_time;                   
-            end
-        end
         
         function check = getLandingClearance(obj,acft)
             ids = zeros(obj.num_aircraft,1);
@@ -357,17 +344,26 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % iterate over the lower tiangular matrix
             for row = 2:obj.num_aircraft
                 for col = 1:row-1
-                    if obj.dist_bw_acft{row,col} <= 5
+                    p = obj.setCrashProb(obj.dist_bw_acft{row,col});
+                    if p >= 0.5
                         acft1 = obj.getAircraftById(row);
                         acft2 = obj.getAircraftById(col);
-                        min_passing_dist = obj.closestPassingDistance(acft1,acft2);
-
-                        if min_passing_dist <= obj.crash_threshold
-                            obj.calcRelSpeedBwAircraft();
+                        if acft1.isAirborne() && acft2.isAirborne()
                             flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
                             flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
                         end
                     end
+%                         if obj.dist_bw_acft{row,col} <= 5
+%                             acft1 = obj.getAircraftById(row);
+%                             acft2 = obj.getAircraftById(col);
+%                             min_passing_dist = obj.closestPassingDistance(acft1,acft2);
+% 
+%                             if min_passing_dist <= obj.crash_threshold
+%                                 obj.calcRelSpeedBwAircraft();
+%                                 flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
+%                                 flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
+%                             end
+%                         end
                 end
             end
             for i=1:obj.num_aircraft
@@ -390,6 +386,19 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                 obj.crash_threshold * 2));
             dist = airtaxi.funcs.min_dist( ...
                 track1, acft1_spd, track2, acft2_spd, numPoints);
+        end
+        
+        function p = setCrashProb(obj,distance)
+            c1 = (200+obj.crash_threshold)^2/2  - obj.crash_threshold^2/2;
+            c2 = 200; %clearance needed for takeoff / landing helicopters per FAA
+            c3 = 200 + obj.crash_threshold;
+            c4 = 1; y = [1;0]; C = [c1 c2; c3 c4]; x = C\y;
+            if distance <= 200/3280.84 + obj.crash_threshold
+                p = 1 - (x(1)*(distance^2)/2 + b*distance - (x(1)*obj.crash_threshold^2/2 ...
+                +x(2)*obj.crash_threshold));
+            else
+                p = 0;
+            end
         end
         
         function logFatalCrash(obj,mode)
@@ -435,11 +444,10 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % calculate vectors between all aircraft for datalink buffering
             % and lookup.  Each column/row is vector from that aircraft to
             % all others
+            obj.rel_speed_bw_acft = num2cell(zeros(obj.num_aircraft));
             for i=1:obj.num_aircraft
                 is_airborne = obj.aircraft_fleet{i}.isAirborne();
                 for j=1:obj.num_aircraft
-                    obj.rel_speed_bw_acft{i,j} = 0;
-
                     if (i ~= j) && is_airborne && ...
                             obj.aircraft_fleet{j}.isAirborne()
                         

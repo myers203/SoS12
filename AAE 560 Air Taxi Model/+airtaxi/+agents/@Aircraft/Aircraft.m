@@ -38,6 +38,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         cruise_altitude
         max_turn_rate       
         arrival_threshold
+
         nav_dist_thresh 
         visual_range
         speedScaleFactor
@@ -87,9 +88,17 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
 
             obj.dir_vect      = [0 0];
             obj.dir_vect_next = [0 0];
+
             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
             obj.cruise_speed       = 270/...          % [km/hr]
                 obj.convert.unit('hr2min'); %[mi/min]
+
+            obj.speedScaleFactor   = speed_scale_factor;
+
+%             % Uber White Paper: "3. En-route VTOL airspeed is 170 mph."
+%             obj.cruise_speed       = 270/...          % [km/hr]
+%                 obj.convert.unit('hr2min'); %[mi/min]
+
             
             % only account for acft < XXX nmi away
             obj.nav_dist_thresh    = 20; 
@@ -165,30 +174,28 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             
             % modify vector based on SA data
             delta_theta = 0;
-            if ~isempty(acftRelPos)
-                for i=1:size(acftRelPos,1)
-                    d_theta = 0;
-                    v = acftRelPos{i,:};
-                    dist = norm(v);
-                    % only process aircraft within threhold distance
-                    if dist < obj.nav_dist_thresh  
-                        % get angle between flight vector and aircraft vector
-                        alpha = atan2(obj.dir_vect(2),obj.dir_vect(1)) - ...
-                            atan2(v(2),v(1));
-
-                        % only worried about acft in front of us
-                        if (alpha > -pi/2) && (alpha < pi/2)
-                            % d_theta should stear us 45 deg away from other
-                            % aircraft, scaled by distance (closer aircraft
-                            % have higher impace to d_theta
-                            d_theta = sign(alpha)*pi/4 - alpha;
-                            d_theta = d_theta * ...
-                                (obj.nav_dist_thresh-dist)/obj.nav_dist_thresh ;
-                        end
+            for i=1:size(acftRelPos,1)
+                d_theta = 0;
+                v = acftRelPos{i,:};
+                dist = norm(v);
+                % only process aircraft within threhold distance
+                if dist < obj.nav_dist_thresh  
+                    % get angle between flight vector and aircraft vector
+                    alpha = atan2(obj.dir_vect(2),obj.dir_vect(1)) - ...
+                        atan2(v(2),v(1));
+                    
+                    % only worried about acft in front of us
+                    if (alpha > -pi/2) && (alpha < pi/2)
+                        % d_theta should stear us 45 deg away from other
+                        % aircraft, scaled by distance (closer aircraft
+                        % have higher impace to d_theta
+                        d_theta = sign(alpha)*pi/4 - alpha;
+                        d_theta = d_theta * ...
+                            (obj.nav_dist_thresh-dist)/obj.nav_dist_thresh ;
                     end
-
-                    delta_theta = delta_theta + d_theta;
                 end
+                
+                delta_theta = delta_theta + d_theta;
             end
         end
         
@@ -205,16 +212,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             acftRelPos = obj.parent.getDatalinkData(obj);
         end
         
-        function acftRelPos = getBufferedSA(obj)
-            obj.visual_sa_buffer(1:end-1) = obj.visual_sa_buffer(2:end);
-            obj.visual_sa_buffer{end} = obj.parent.vectors2Aircraft(obj);
-            acftRelPos = obj.visual_sa_buffer{1};
-        end
-        
         function acftRelPos = gatherVisualSA(obj)
             % TODO: add visual SA
 %             w = obj.getWeather();
-            acftRelPos = obj.getBufferedSA();
+            acftRelPos = obj.parent.vectors2Aircraft(obj);
 
             % filter out all aircraft outside of visual range
             del_flag = zeros(1,size(acftRelPos,1));
@@ -276,12 +277,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         
         function midAirCollision(obj,s_rel)
             p = 1/(1+exp(5.5-.075*s_rel));
-            if p>.4
+            if p>.5
                 obj.parent.logFatalCrash(obj.pilot_type);
-%                 obj.setOperationMode('crash-fatal');
             else
                 obj.parent.logNonFatalCrash(obj.pilot_type);
-%                 obj.setOperationMode('crash-nonfatal')
             end
 %             crash_location=obj.location;
 %             dest = obj.nav_dest;

@@ -35,3 +35,4 @@ waypoints.mat
 +ssat/+agents/**/*.txt
 ChorusOut.txt
 hist.mat
+AAE 560 Air Taxi Model/+airtaxi/output.xlsx
