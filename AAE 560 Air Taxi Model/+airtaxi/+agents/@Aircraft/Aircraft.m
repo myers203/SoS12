@@ -268,8 +268,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         end
         
         function midAirCollision(obj,s_rel,prob)
-            p = prob*(1/(1+exp(5.5-.075*s_rel)));
+            p = (1/(1+exp(5.5-.075*s_rel)));
             non_f_p = prob*(1-p);
+            p = prob*p;
             
                 obj.parent.logFatalCrash(obj.pilot_type,p);
                 obj.parent.logNonFatalCrash(obj.pilot_type,non_f_p);
