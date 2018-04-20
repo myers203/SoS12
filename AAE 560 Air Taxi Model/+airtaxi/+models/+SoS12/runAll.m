@@ -60,8 +60,6 @@ function [simRuns] = runAll(~)
 
     % Comment out this line to run in parallel mode
 
-    runParallel = false;
-
     %runParallel = false;
 
     if runParallel
