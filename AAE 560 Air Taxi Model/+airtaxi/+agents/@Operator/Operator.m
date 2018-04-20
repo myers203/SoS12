@@ -346,16 +346,18 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             % iterate over the lower tiangular matrix
             for row = 2:obj.num_aircraft
                 for col = 1:row-1
+                    acft1 = obj.getAircraftById(row);
+                    acft2 = obj.getAircraftById(col);
+                    min_passing_dist = obj.closestPassingDistance(acft1,acft2);
                     if probs(row)==0
-                        probs(row) = obj.setCrashProb(obj.dist_bw_acft{row,col});
+                        probs(row) = obj.setCrashProb(min_passing_dist);
+%                         probs(row) = obj.setCrashProb(obj.dist_bw_acft{row,col});
                     end
                     if probs(col)==0
-                        probs(col) = obj.setCrashProb(obj.dist_bw_acft{row,col});
+%                         probs(col) = obj.setCrashProb(obj.dist_bw_acft{row,col});
+                        probs(col) = obj.setCrashProb(min_passing_dist);
                     end
-                        acft1 = obj.getAircraftById(row);
-                        acft2 = obj.getAircraftById(col);
                         if probs(row) > 0 && probs(col) > 0
-                          
                             if acft1.isAirborne() && acft2.isAirborne()
                                 flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
                                 flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
