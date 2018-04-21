@@ -406,8 +406,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function p = setCrashProb(obj,distance)
             dmp = (obj.crash_threshold+200/3280.84)/2;
-            r = (12.5/3280.84)/(dmp-obj.crash_threshold);
-            lambda = -log(5) / (r*(dmp - obj.crash_threshold));
+            r = (15/3280.84)/(dmp-obj.crash_threshold);
+            lambda = -log(0.002) / (r*(dmp - obj.crash_threshold));
             if abs(distance-obj.crash_threshold) <= .30 %km
                 p = exp(-lambda*abs(distance-obj.crash_threshold));
             else
