@@ -63,6 +63,7 @@ function [simRuns] = runAll(~)
 
     %runParallel = false;
 
+    tic
     if runParallel
         for i = 1:numRuns
             F(i) = parfeval(@airtaxi.models.SoS12.runModel_new,1, ...
@@ -86,6 +87,7 @@ function [simRuns] = runAll(~)
                 speed_scale_factor);
         end
     end
+    toc
     
     % Write outputs to file
     xlswrite(output_file,results);
