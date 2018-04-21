@@ -282,13 +282,15 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.parent.logFatalCrash(obj.pilot_type,p);
             obj.parent.logNonFatalCrash(obj.pilot_type,non_f_p);
             v = obj.location;
-            plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);                  
-            obj.operation_mode = 'idle';
-            obj.location = obj.nav_dest;
-            obj.speed = 0;
-            obj.destination = struct();
-            obj.plotter.traj = [];
-            obj.plotter.updatePlot(obj.location);
+            if prob >= 0.5
+                plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);                  
+                obj.operation_mode = 'idle';
+                obj.location = obj.nav_dest;
+                obj.speed = 0;
+                obj.destination = struct();
+                obj.plotter.traj = [];
+                obj.plotter.updatePlot(obj.location);
+            end
         end
         
 %         function w = getWeather(obj)
