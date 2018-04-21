@@ -36,9 +36,6 @@ classdef Operator < publicsim.agents.hierarchical.Parent
     methods
         function obj = Operator()
             obj = obj@publicsim.agents.hierarchical.Parent();
-            %obj.takeoff_clearance   = 0; this is set in spreadsheet
-            %obj.landing_clearance = 0; this is set in spreadsheet
-            %obj.separation_distance = 0; this is set in spreadsheet
             obj.crash_threshold = 30/3280.84; %ft/km - factor of safety 
             %x estimation of diameter of wingspan/rotors
             %of main rotor
