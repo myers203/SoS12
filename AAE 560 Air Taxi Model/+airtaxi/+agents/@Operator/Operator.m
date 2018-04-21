@@ -352,6 +352,14 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                     if probs(col)==0
                         probs(col) = obj.setCrashProb(obj.dist_bw_acft{row,col});
                     end
+                    %in the case of a multi-vehicle collision, we choose the
+                    %highest probability between a pair.
+                    if probs(row)>0 && probs(col)>probs(row)
+                        probs(row) = probs(col);
+                    end
+                    if probs(col)>0 && probs(row)>probs(col)
+                        probs(col) = probs(row);
+                    end
                         acft1 = obj.getAircraftById(row);
                         acft2 = obj.getAircraftById(col);
                         if probs(row) > 0 && probs(col) > 0
@@ -397,9 +405,10 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         end
         
         function p = setCrashProb(obj,distance)
-            lambda = -log(0.5) / ((obj.crash_threshold+...
-                (obj.crash_threshold+200/3280.84))/2 - obj.crash_threshold);
-            if distance <= (obj.separation_distance)
+            dmp = (obj.crash_threshold+200/3280.84)/2;
+            r = (15/3280.84)/(dmp-obj.crash_threshold);
+            lambda = -log(0.002) / (r*(dmp - obj.crash_threshold));
+            if abs(distance-obj.crash_threshold) <= .30 %km
                 p = exp(-lambda*abs(distance-obj.crash_threshold));
             else
                 p = 0;

@@ -45,6 +45,7 @@ function [simRuns] = runAll(~)
         disp(['Existing file "', output_file, '" will be deleted.']);
         disp('Change the file name if you want to keep it.');
         disp('Press F5 to continue.');
+        
         keyboard
         delete(output_file);
     end
