@@ -2,7 +2,7 @@ function [simRuns] = runAll(~)
     %RUNALL Summary of this function goes here
     %   Detailed explanation goes here
     tic
-    input_file = '+airtaxi/Baseline.xlsx';
+    input_file = '+airtaxi/Inputs.xlsx';
     port_file = '+airtaxi/PortLocations.xlsx';
     output_file = '+airtaxi/output.xlsx';
     speed_scale_factor = 1/5;
