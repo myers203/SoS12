@@ -2,10 +2,14 @@ function [simRuns] = runAll(~)
     %RUNALL Summary of this function goes here
     %   Detailed explanation goes here
     tic
-    input_file = '+airtaxi/Baseline.xlsx';
+    input_file = '+airtaxi/Inputs.xlsx';
     port_file = '+airtaxi/PortLocations.xlsx';
     output_file = '+airtaxi/output.xlsx';
     speed_scale_factor = 1/5;
+    
+    dateFormat = 'yyyy-mm-dd.HH-MM-SS';
+    output_file = replace(output_file,'.xlsx', ...
+        strcat('.',datestr(datetime,dateFormat),'.xlsx'));
 
     % parse run data
     [~,~,runs] = xlsread(input_file,'runs');
@@ -41,15 +45,6 @@ function [simRuns] = runAll(~)
         keyboard
     end
     
-    if exist(output_file,'file') > 0
-        disp(['Existing file "', output_file, '" will be deleted.']);
-        disp('Change the file name if you want to keep it.');
-        disp('Press F5 to continue.');
-        
-        keyboard
-        delete(output_file);
-    end
-    
     % First row of results is header row
     results(1,:) = {'Run_ID','fatal human', 'fatal auto', ...
        'non-fatal human', 'non-fatal auto', ...
@@ -61,9 +56,8 @@ function [simRuns] = runAll(~)
 
     % Comment out this line to run in parallel mode
 
-    %runParallel = false;
+%     runParallel = false;
 
-    tic
     if runParallel
         for i = 1:numRuns
             F(i) = parfeval(@airtaxi.models.SoS12.runModel_new,1, ...
@@ -87,7 +81,6 @@ function [simRuns] = runAll(~)
                 speed_scale_factor);
         end
     end
-    toc
     
     % Write outputs to file
     xlswrite(output_file,results);
