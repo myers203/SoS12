@@ -285,6 +285,7 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             end
             
             if prob >= 0.5
+                v = obj.location;
                 plot(v(1),v(2),'rx','MarkerSize',12,'LineWidth',2);                  
                 obj.operation_mode = 'idle';
                 obj.location = obj.nav_dest;
