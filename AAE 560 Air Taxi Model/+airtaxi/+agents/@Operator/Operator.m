@@ -363,7 +363,8 @@ classdef Operator < publicsim.agents.hierarchical.Parent
                         acft1 = obj.getAircraftById(row);
                         acft2 = obj.getAircraftById(col);
 
-                        if probs(row) > 0 && probs(col) > 0
+                        if probs(row) > 0 && probs(col) > 0 && ...
+                                obj.rel_speed_bw_acft{row,col}>0
                             if acft1.isAirborne() && acft2.isAirborne()
                                 flag_crashed(row) = obj.rel_speed_bw_acft{row,col};
                                 flag_crashed(col) = obj.rel_speed_bw_acft{row,col};
