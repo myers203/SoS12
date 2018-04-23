@@ -243,15 +243,15 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
         end
         
         function dist_flown = updateLocation(obj,time_since_update)
-			% Update the aircraft location 
-			
-			% Calculate remaining distance to target location
+            % Update the aircraft location 
+            
+            % Calculate remaining distance to target location
             dist2dest = airtaxi.funcs.calc_dist(obj.location,obj.nav_dest);
             
             dist_flown = obj.speed*time_since_update;
             alt_climb  = 3;
             
-			% Update arrival at the ports 
+            % Update arrival at the ports 
             if dist2dest < obj.arrival_threshold && obj.parent.getLandingClearance(obj)
 %             if dist2dest < obj.arrival_threshold 
                 if strcmp(obj.operation_mode,'enroute2pickup')
@@ -270,8 +270,8 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
                 obj.speed = 0;
                 obj.holding_time = obj.holding_time + obj.run_interval;
             end
-			
-			% Update the realtime plot 
+            
+            % Update the realtime plot 
             obj.plotter.updatePlot(obj.location);
         end
         
@@ -314,10 +314,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             obj.current_port = obj.destination.id;
             obj.destination = struct();
             obj.nav_dest = [];
-			
+            
             obj.speed = 0;
 
-			
+            
             % Reset plot trajectory
             obj.plotter.traj = [];
         end
@@ -423,6 +423,10 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
             c = obj.color;
         end
         
+        function setColor(obj, color)
+            obj.color = color;
+        end
+        
         function loc = getLocation(obj)
             loc = obj.location;
         end
@@ -470,9 +474,9 @@ classdef Aircraft < airtaxi.agents.Agent & publicsim.agents.base.Movable...
     methods (Static,Access=private)
         
         function addPropertyLogs(obj)
-			% Define the attributes that needs to be logged
-			
-			% The attributes can either be an agent property or a function which returns a value 
+            % Define the attributes that needs to be logged
+            
+            % The attributes can either be an agent property or a function which returns a value 
             obj.addPeriodicLogItems({'getOperationMode'});
         end
         

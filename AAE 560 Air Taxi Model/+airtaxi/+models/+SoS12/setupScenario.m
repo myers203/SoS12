@@ -39,8 +39,10 @@ function setupScenario(input_file,port_file,runNum,acAgents,portAgents,operator)
     for ii=1:n_aircraft
         if ii <= numHumanAcft
             acAgents{ii}.pilot_type = 'human';
+            acAgents{ii}.setColor('b');
         else
             acAgents{ii}.pilot_type = 'full-auto';
+            acAgents{ii}.setColor('g');
         end
 
         acAgents{ii}.ac_id = ii; 

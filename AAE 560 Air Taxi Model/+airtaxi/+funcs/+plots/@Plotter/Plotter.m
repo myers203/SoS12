@@ -57,8 +57,10 @@ classdef Plotter < handle
             fig.Position(3) = 10;
             fig.Position(4) = 7;
             axis equal;
-            xticks(bounds.xLim(1):5:bounds.xLim(2));
-            yticks(bounds.yLim(1):5:bounds.yLim(2));
+            xt = round(bounds.xLim(1):5:bounds.xLim(2));
+            yt = round(bounds.yLim(1):5:bounds.yLim(2));
+            xticks(xt);
+            yticks(yt);
             movegui(fig,'center')
 %             xlabel('X [nMi]');ylabel('Y [nMi]')
         

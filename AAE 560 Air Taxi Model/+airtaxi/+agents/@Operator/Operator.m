@@ -131,14 +131,14 @@ classdef Operator < publicsim.agents.hierarchical.Parent
             end
         end
         
-        function spawnDemand(obj,port,time)	
-			if length(port.current_customers) == ...
+        function spawnDemand(obj,port,time) 
+            if length(port.current_customers) == ...
                     port.max_customers 
-				% Maximum customers reached
-				return
-			end
-			
-			% Check if the demand spawning function returns demand for this port at this time			
+                % Maximum customers reached
+                return
+            end
+            
+            % Check if the demand spawning function returns demand for this port at this time           
             if airtaxi.funcs.spawnCustomer(time,port)
                 dest = [];
                 while isempty(dest)
@@ -162,8 +162,14 @@ classdef Operator < publicsim.agents.hierarchical.Parent
         
         function aircraft = getAvailableAircraftAtPort(obj,port)
             aircraft = {};
+            acftToCheck = [1:obj.num_aircraft];
             for i=1:obj.num_aircraft
-                acft = obj.aircraft_fleet{i};
+                % get random aircraft from remaining list
+                idx = randi(length(acftToCheck));
+                acft = obj.aircraft_fleet{acftToCheck(idx)};
+                % remove aircraft from remaining list to check
+                acftToCheck(idx) = [];
+                
                 if strcmp(acft.operation_mode,'idle') && ...
                         acft.current_port == port.port_id
                     aircraft = acft;
